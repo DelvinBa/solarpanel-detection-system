@@ -1,0 +1,67 @@
+---
+title: "Project Guidelines: Automatic Solar Panel Detection"
+author: "Team"
+format: html
+toc: true
+number-sections: true
+---
+
+# Way of Working
+
+## Process Management (12.5%)
+
+- **Scrum & Retrospectives** for agile workflow.
+- **Weekly Client Meetings** to showcase progress:
+  - Prepare slides with visuals.
+  - Present burndown chart.
+- **Proactive Client Communication**:
+  - Write an agenda for the next meeting.
+
+## Quality Control (12.5%)
+
+- Ensure **good code quality**: readability, maintainability, safety, and performance.
+- Implement **unit testing & end-to-end testing** in CI/CD.
+- Use **JupyterLab + Quarto** for documentation with clear explanations.
+
+## Analysis (20%)
+
+- Define **vision and goals** clearly.
+- Ensure **requirements are linked** to goals and refined iteratively.
+- Develop **scenarios based on requirements**.
+- **Document results & solutions** to business problems.
+
+## Technical Design (20%)
+
+- Specify **appropriate architecture** to meet requirements, comparing relevant technologies.
+- Design a **scalable, flexible, and robust pipeline**.
+
+## Realization (35%)
+
+- **Deploy to the cloud** for scalability.
+- **Fully automated workflow** for efficiency.
+- Follow **FAIR principles** for responsible data handling.
+
+---
+
+# Working Agreement
+
+- **Iteration Cycle Duration**: **1 Week**
+- **Daily Stand-up**: Monday - Friday **12:00 PM (20 mins)**
+- **Sprint Planning**: Monday **12:00 PM** → Distribute requirements as issues.
+- **Sprint Review (weekly with client)**:
+  - **Demo progress from the previous week**.
+  - **Plan next steps**.
+- **Retrospective**: Every **two weeks on Monday at 11:30 AM**.
+- **Team Meetings**: Monday + Wednesday **10:30 AM**.
+
+---
+
+# Definition of Done
+
+- **Every merge request requires unit and end-to-end tests** if applicable.
+- **Every merge request must be approved by at least one team member**.
+- **Code must follow best practices** for readability, maintainability, and performance.
+- **CI/CD pipelines should pass successfully before merging**.
+- **Documentation must be updated when introducing significant changes**.
+- **New features must be tested in a local or staging environment before deployment**.
+- **Code reviews should be meaningful**: Provide feedback and suggestions.

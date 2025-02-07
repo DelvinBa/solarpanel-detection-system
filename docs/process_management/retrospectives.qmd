@@ -1,0 +1,16 @@
+---
+title: "Retrospectives"
+format:
+    html: 
+        code-fold: true
+    pdf: 
+        geometry: 
+        - top=30mm
+        - left=20mm
+---
+
+With retrospectives and the documentation of them we try to continuously improve the process and functioning of the team using concrete traceable improvement actions every iteration. 
+Altough we have Iteration Cycles of 1 week, we decided to retrospective every two weeks, to have more time for development, since short project time of 10 weeks.
+
+# 17/02/2025 - Retrospective 1
+

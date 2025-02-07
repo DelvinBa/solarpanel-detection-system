@@ -1,0 +1,30 @@
+project:
+  type: website
+
+website: 
+  title: "Automatic Solar Panel Detection - Documentation"
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - href: index.qmd
+        text: "Home"
+      - section: "Process Management"
+        contents:
+         - docs/process_management/way_of_working.qmd
+         - docs/process_management/retrospectives.qmd
+      - section: "Project Documentation"
+        contents:
+         - docs/technical_design/main.qmd
+
+format:
+  html:
+    comments:
+      hypothesis: true
+  docx: default
+  jats: default
+
+execute:
+  freeze: true
+
+

@@ -1,0 +1,29 @@
+---
+title: Automatic Solar Panel Detection Documentation
+authors:
+  - name: Navid Gharapanjeh
+    roles: writing
+    corresponding: true
+  - name: Delvin Bacho
+    roles: writing
+    corresponding: true
+toc: true
+number-sections: true
+highlight-style: pygments
+format: 
+  html: 
+    code-fold: true
+    html-math-method: katex
+  pdf: 
+    geometry: 
+      - top=30mm
+      - left=20mm
+  docx: default
+---
+
+Welcome to the **Automatic Solar Panel Detection** documentation!
+
+The main document is located under **technical_design/main_document**.
+
+Additional documents include research papers, retrospectives, and other project-related reports.
+
