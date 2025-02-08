@@ -1,5 +1,5 @@
 ---
-title: "Automatic Solarpanel Detection - Documentation"
+title: "Arc42 Documentation"
 author:
   - Navid Gharapanjeh
   - Delvin Bacho
@@ -12,5 +12,97 @@ format:
         geometry: 
         - top=30mm
         - left=20mm
+---
+
+
+# 1. Introduction and Goals
+
+## Objective  
+The **NOWATT project** focuses on accelerating the **energy transition** and reducing **grid congestion** by making neighborhoods more **energy neutral** through AI-driven solutions. It brings together **residents (behavioral changes), SMEs (technology solutions), and government agencies (housing cooperatives)** to optimize energy efficiency.  
+
+As part of this initiative, our project aims to develop an **AI-based solar panel detection system** using **satellite imagery**. This will support **predicting energy labels** for houses in the Netherlands, helping housing associations and property owners determine **which buildings require sustainability improvements**.  
+
+By 2030, all rental properties must have an **energy label of at least D**, pushing landlords to implement **sustainability measures**. To assist in this transition, we aim to build a **computer vision model** that can **automatically detect solar panels** from satellite images and integrate this data with **public sources like Kadaster** to enhance energy label predictions.
+
+## Vision  
+**FOR** housing associations and property owners <br> \newline 
+**WHO** need to assess and improve the energy efficiency of buildings <br> \newline 
+**AND FOR** government agencies and sustainability organizations <br> \newline 
+**WHO** require reliable data to track energy transition progress <br> \newline 
+**THE** Solar Panel Detection System <br> \newline 
+**THAT** automatically detects solar panels from satellite imagery to assist in energy label prediction <br> \newline 
+**AND THAT** integrates with public property data (Kadaster) to provide actionable insights <br> \newline 
+**UNLIKE** with manual inspections <br> \newline 
+**OUR PRODUCT** offers an automated, scalable, and data-driven approach to sustainability assessment <br> \newline 
+
+
+- **Stakeholders**: Identify key roles (Data Scientists, Engineers, Business Users, etc.).
+
+- **Goals**: Define goals for the project.
+- **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
+
+# 2. Constraints
+- **Technical constraints**: Hardware, software, cloud providers.
+- **Regulatory & Compliance**: GDPR, AI ethics, data security.
+- **Operational constraints**: Budget, team skills, deadlines.
+
+# 3. System Scope and Context
+- **Scope**: Define what is included/excluded in the project.
+- **Context Diagram**: Illustrate data sources, models, and outputs.
+
+# 4. Solution Strategy
+- **Data pipeline strategy**: Batch vs. real-time.
+- **ML model strategy**: Pre-trained vs. custom models.
+- **Deployment strategy**: On-premises, cloud, or edge.
+- **Scaling strategy**: Horizontal vs. vertical scaling.
+
+# 5. Building Block View
+- **Components Overview**:
+  - Data ingestion
+  - Data preprocessing
+  - Feature engineering
+  - Model training
+  - Model evaluation
+  - Model deployment
+- **Component Diagram**: Visualize these blocks and their interactions.
+
+# 6. Runtime View
+- **Data flow**: How data moves through the system.
+- **Model serving process**: How predictions are generated and served.
+- **Monitoring & logging**: Performance tracking and debugging.
+
+# 7. Deployment View
+- **Infrastructure choices**: Cloud services, local servers.
+- **CI/CD pipeline for ML models**.
+- **Containerization strategy**: Docker, Kubernetes.
+- **Versioning & rollback mechanisms**.
+
+# 8. Cross-cutting Concepts
+- **Security & Access Control**.
+- **Data Governance & Lineage**.
+- **MLOps Best Practices**.
+- **Bias & Fairness Considerations**.
+
+# 9. Architecture Decisions
+- **ADR (Architecture Decision Records)**
+  - Choice of model framework
+  - Database selection
+  - API design choices
+  - Model versioning policy
+
+# 10. Quality Requirements
+- **Model Performance Metrics**.
+- **Scalability & Maintainability**.
+- **Explainability & Interpretability**.
+- **Fault tolerance & disaster recovery**.
+
+# 11. Risks and Technical Debt
+- **Potential biases in data and models**.
+- **Computational cost and resource constraints**.
+- **Integration challenges with existing systems**.
+
+# 12. Glossary
+- Define key terms related to ML, AI, and MLOps.
+
 ---
 

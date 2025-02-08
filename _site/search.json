@@ -1,0 +1,232 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Automatic Solar Panel Detection Documentation",
+    "section": "",
+    "text": "Welcome to the Automatic Solar Panel Detection documentation!\nThe main document is located under technical_design/main_document.\nAdditional documents include research papers, retrospectives, and other project-related reports.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/retrospectives.html",
+    "href": "docs/process_management/retrospectives.html",
+    "title": "Retrospectives",
+    "section": "",
+    "text": "With retrospectives and the documentation of them we try to continuously improve the process and functioning of the team using concrete traceable improvement actions every iteration. Altough we have Iteration Cycles of 1 week, we decided to retrospective every two weeks, to have more time for development, since short project time of 10 weeks.\n\n17/02/2025 - Retrospective 1",
+    "crumbs": [
+      "Process Management",
+      "Retrospectives"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html",
+    "href": "docs/process_management/way_of_working.html",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Scrum & Retrospectives for agile workflow.\nWeekly Client Meetings to showcase progress:\n\nPrepare slides with visuals.\nPresent burndown chart.\n\nProactive Client Communication:\n\nWrite an agenda for the next meeting.\n\n\n\n\n\n\nEnsure good code quality: readability, maintainability, safety, and performance.\nImplement unit testing & end-to-end testing in CI/CD.\nUse JupyterLab + Quarto for documentation with clear explanations.\n\n\n\n\n\nDefine vision and goals clearly.\nEnsure requirements are linked to goals and refined iteratively.\nDevelop scenarios based on requirements.\nDocument results & solutions to business problems.\n\n\n\n\n\nSpecify appropriate architecture to meet requirements, comparing relevant technologies.\nDesign a scalable, flexible, and robust pipeline.\n\n\n\n\n\nDeploy to the cloud for scalability.\nFully automated workflow for efficiency.\nFollow FAIR principles for responsible data handling.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html#process-management-12.5",
+    "href": "docs/process_management/way_of_working.html#process-management-12.5",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Scrum & Retrospectives for agile workflow.\nWeekly Client Meetings to showcase progress:\n\nPrepare slides with visuals.\nPresent burndown chart.\n\nProactive Client Communication:\n\nWrite an agenda for the next meeting.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html#quality-control-12.5",
+    "href": "docs/process_management/way_of_working.html#quality-control-12.5",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Ensure good code quality: readability, maintainability, safety, and performance.\nImplement unit testing & end-to-end testing in CI/CD.\nUse JupyterLab + Quarto for documentation with clear explanations.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html#analysis-20",
+    "href": "docs/process_management/way_of_working.html#analysis-20",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Define vision and goals clearly.\nEnsure requirements are linked to goals and refined iteratively.\nDevelop scenarios based on requirements.\nDocument results & solutions to business problems.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html#technical-design-20",
+    "href": "docs/process_management/way_of_working.html#technical-design-20",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Specify appropriate architecture to meet requirements, comparing relevant technologies.\nDesign a scalable, flexible, and robust pipeline.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/process_management/way_of_working.html#realization-35",
+    "href": "docs/process_management/way_of_working.html#realization-35",
+    "title": "Way of Working",
+    "section": "",
+    "text": "Deploy to the cloud for scalability.\nFully automated workflow for efficiency.\nFollow FAIR principles for responsible data handling.",
+    "crumbs": [
+      "Process Management",
+      "Way of Working"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html",
+    "href": "docs/technical_design/main.html",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Objective: Describe the purpose of the project.\nStakeholders: Identify key roles (Data Scientists, Engineers, Business Users, etc.).\nKey Performance Indicators (KPIs): Define success metrics.\n\n\n\n\n\nTechnical constraints: Hardware, software, cloud providers.\nRegulatory & Compliance: GDPR, AI ethics, data security.\nOperational constraints: Budget, team skills, deadlines.\n\n\n\n\n\nScope: Define what is included/excluded in the project.\nContext Diagram: Illustrate data sources, models, and outputs.\n\n\n\n\n\nData pipeline strategy: Batch vs. real-time.\nML model strategy: Pre-trained vs. custom models.\nDeployment strategy: On-premises, cloud, or edge.\nScaling strategy: Horizontal vs. vertical scaling.\n\n\n\n\n\nComponents Overview:\n\nData ingestion\nData preprocessing\nFeature engineering\nModel training\nModel evaluation\nModel deployment\n\nComponent Diagram: Visualize these blocks and their interactions.\n\n\n\n\n\nData flow: How data moves through the system.\nModel serving process: How predictions are generated and served.\nMonitoring & logging: Performance tracking and debugging.\n\n\n\n\n\nInfrastructure choices: Cloud services, local servers.\nCI/CD pipeline for ML models.\nContainerization strategy: Docker, Kubernetes.\nVersioning & rollback mechanisms.\n\n\n\n\n\nSecurity & Access Control.\nData Governance & Lineage.\nMLOps Best Practices.\nBias & Fairness Considerations.\n\n\n\n\n\nADR (Architecture Decision Records)\n\nChoice of model framework\nDatabase selection\nAPI design choices\nModel versioning policy\n\n\n\n\n\n\nModel Performance Metrics.\nScalability & Maintainability.\nExplainability & Interpretability.\nFault tolerance & disaster recovery.\n\n\n\n\n\nPotential biases in data and models.\nComputational cost and resource constraints.\nIntegration challenges with existing systems.\n\n\n\n\n\nDefine key terms related to ML, AI, and MLOps.\n\n\nThis template provides a structured way to document your data science and ML project architecture while integrating MLOps and software engineering best practices. Let me know if you’d like adjustments!",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#introduction-and-goals",
+    "href": "docs/technical_design/main.html#introduction-and-goals",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Objective: Describe the purpose of the project.\nStakeholders: Identify key roles (Data Scientists, Engineers, Business Users, etc.).\nKey Performance Indicators (KPIs): Define success metrics.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#constraints",
+    "href": "docs/technical_design/main.html#constraints",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Technical constraints: Hardware, software, cloud providers.\nRegulatory & Compliance: GDPR, AI ethics, data security.\nOperational constraints: Budget, team skills, deadlines.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#system-scope-and-context",
+    "href": "docs/technical_design/main.html#system-scope-and-context",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Scope: Define what is included/excluded in the project.\nContext Diagram: Illustrate data sources, models, and outputs.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#solution-strategy",
+    "href": "docs/technical_design/main.html#solution-strategy",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Data pipeline strategy: Batch vs. real-time.\nML model strategy: Pre-trained vs. custom models.\nDeployment strategy: On-premises, cloud, or edge.\nScaling strategy: Horizontal vs. vertical scaling.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#building-block-view",
+    "href": "docs/technical_design/main.html#building-block-view",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Components Overview:\n\nData ingestion\nData preprocessing\nFeature engineering\nModel training\nModel evaluation\nModel deployment\n\nComponent Diagram: Visualize these blocks and their interactions.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#runtime-view",
+    "href": "docs/technical_design/main.html#runtime-view",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Data flow: How data moves through the system.\nModel serving process: How predictions are generated and served.\nMonitoring & logging: Performance tracking and debugging.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#deployment-view",
+    "href": "docs/technical_design/main.html#deployment-view",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Infrastructure choices: Cloud services, local servers.\nCI/CD pipeline for ML models.\nContainerization strategy: Docker, Kubernetes.\nVersioning & rollback mechanisms.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#cross-cutting-concepts",
+    "href": "docs/technical_design/main.html#cross-cutting-concepts",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Security & Access Control.\nData Governance & Lineage.\nMLOps Best Practices.\nBias & Fairness Considerations.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#architecture-decisions",
+    "href": "docs/technical_design/main.html#architecture-decisions",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "ADR (Architecture Decision Records)\n\nChoice of model framework\nDatabase selection\nAPI design choices\nModel versioning policy",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#quality-requirements",
+    "href": "docs/technical_design/main.html#quality-requirements",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Model Performance Metrics.\nScalability & Maintainability.\nExplainability & Interpretability.\nFault tolerance & disaster recovery.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#risks-and-technical-debt",
+    "href": "docs/technical_design/main.html#risks-and-technical-debt",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Potential biases in data and models.\nComputational cost and resource constraints.\nIntegration challenges with existing systems.",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  },
+  {
+    "objectID": "docs/technical_design/main.html#glossary",
+    "href": "docs/technical_design/main.html#glossary",
+    "title": "Arc42 Documentation",
+    "section": "",
+    "text": "Define key terms related to ML, AI, and MLOps.\n\n\nThis template provides a structured way to document your data science and ML project architecture while integrating MLOps and software engineering best practices. Let me know if you’d like adjustments!",
+    "crumbs": [
+      "Project Documentation",
+      "Arc42 Documentation"
+    ]
+  }
+]
