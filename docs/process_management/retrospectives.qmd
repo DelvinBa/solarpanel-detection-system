@@ -14,3 +14,43 @@ Altough we have Iteration Cycles of 1 week, we decided to retrospective every tw
 
 # 17/02/2025 - Retrospective 1
 
+## What Went Well? 🎉  
+* _(Things that worked well and should be continued.)_  
+  - [List key successes]  
+  - [Positive highlights]  
+
+## What Didn’t Go Well? ⚠️  
+* _(Challenges, blockers, or things that need improvement.)_  
+  - [List pain points]  
+  - [Issues encountered]  
+
+## What Can We Improve? 🔧  
+* _(Actionable steps to address challenges and improve processes.)_  
+  - [List improvement suggestions]  
+  - [Concrete action items with owners]  
+
+
+
+
+# 02/03/2025 - Retrospective 2
+
+## Follow-up on Last Retrospective’s Improvements 🔄  
+* _(What was suggested last time? What actions were taken? What was the outcome?)_  
+  - [Previous improvement 1] → [Status/Outcome]  
+  - [Previous improvement 2] → [Status/Outcome]  
+
+## What Went Well? 🎉  
+* _(Things that worked well and should be continued.)_  
+  - [List key successes]  
+  - [Positive highlights]  
+
+## What Didn’t Go Well? ⚠️  
+* _(Challenges, blockers, or things that need improvement.)_  
+  - [List pain points]  
+  - [Issues encountered]  
+
+## What Can We Improve? 🔧  
+* _(Actionable steps to address challenges and improve processes.)_  
+  - [List improvement suggestions]  
+  - [Concrete action items with owners]  
+

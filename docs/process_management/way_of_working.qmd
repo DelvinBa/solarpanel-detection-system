@@ -8,6 +8,8 @@ number-sections: true
 
 # Way of Working
 
+In this part we 'Way of Working' we have rewritten the rubrics for our self to make clear for us, how we can redefine the expectations into actions.
+
 ## Process Management (12.5%)
 
 - **Scrum & Retrospectives** for agile workflow.
