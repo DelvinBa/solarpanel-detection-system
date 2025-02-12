@@ -15,7 +15,7 @@ website:
          - docs/process_management/retrospectives.qmd
       - section: "Project Documentation"
         contents:
-         - docs/technical_design/main.qmd
+         - docs/technical_functional_design/main.qmd
 
 format:
   html:

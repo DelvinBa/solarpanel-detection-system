@@ -54,7 +54,7 @@ Additionally, the results should ideally be integrated into the broader **energy
 **THAT** automatically detects solar panels from aerial and satellite imagery to support energy label predictions <br> \newline  
 **AND THAT** integrates with public datasets (Kadaster) to provide accurate building-specific insights <br> \newline  
 **UNLIKE** manual surveys and outdated energy labeling methods <br> \newline  
-**OUR PRODUCT** offers an automated, scalable, and AI-driven approach to sustainability assessment <br> \newline  
+**OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
 - **Goals**: Define goals for the project.
 - **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
