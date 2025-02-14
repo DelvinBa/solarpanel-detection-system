@@ -1,0 +1,51 @@
+---
+title: "Non-functional Documentation"
+author:
+  - Navid Gharapanjeh
+  - Delvin Bacho
+date: "2025-02-07"
+toc: true
+format:
+    html: 
+        code-fold: true
+    pdf: 
+        geometry: 
+        - top=30mm
+        - left=20mm
+---
+
+# Non-Functional Requirements
+
+## 1. System Scalability  
+**Tag:** System_Scalability  
+- **Ambition:** Ensure that the system can handle an increasing number of requests without performance degradation.  
+- **Requirement:** The API **shall support up to 50 concurrent requests** without response time exceeding 60 seconds.  
+- **Scale:** Number of concurrent requests.  
+- **Meter:** Measured using stress testing tools.  
+- **Constraints:** Performance tests should be conducted under a simulated load environment.  
+
+## 2. Security & Data Privacy  
+**Tag:** System_Security  
+- **Ambition:** Protect data from unauthorized access and ensure secure API communication.  
+- **Requirement:** The system **shall implement authentication and authorization** for API access using OAuth 2.0 or API keys.  
+- **Scale:** Authentication success/failure rate.  
+- **Meter:** Verified through penetration testing and access control logs.  
+- **Constraints:** The system must comply with **GDPR** regulations regarding personal data handling.  
+
+## 3. Accuracy Requirement (Solar Panel Detection)  
+**Tag:** Solar_Panel_Accuracy  
+**Ambition:** Achieve high precision in solar panel detection.  
+**Requirement:** The object detection model **shall achieve at least 90% IoU accuracy** when identifying solar panels in satellite images.  
+**Scale:** IoU (Intersection over Union) percentage.  
+**Meter:** Evaluated using a labeled test dataset and performance metrics from model evaluation.  
+**Constraints:** The model should not misclassify solar panels at a rate exceeding 5%. 
+
+## 4. Usability & Documentation  
+**Tag:** System_Usability  
+- **Ambition:** Ensure that users and developers can easily understand and interact with the system.  
+- **Requirement:** The system **shall provide detailed API documentation** using **Swagger/OpenAPI** and include **clear user guides**. Additionally, all **machine learning workflows, experiments, and results shall be documented in Jupyter Notebooks** to ensure transparency and reproducibility.  
+- **Scale:** Number of documentation gaps reported by users.  
+- **Meter:** User feedback and developer onboarding time.  
+- **Constraints:** Documentation should be **updated with every major release**, and Jupyter Notebooks must include **step-by-step explanations, code comments, and visualizations** for easy understanding.  
+
+
