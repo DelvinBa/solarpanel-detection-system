@@ -17,26 +17,44 @@ format:
 
 # 1. Introduction and Goals
 
-## Objective  
-The **NOWATT project** focuses on accelerating the **energy transition** and reducing **grid congestion** by making neighborhoods more **energy neutral** through AI-driven solutions. It brings together **residents (behavioral changes), SMEs (technology solutions), and government agencies (housing cooperatives)** to optimize energy efficiency.  
+# 1. Introduction and Goals  
 
-As part of this initiative, our project aims to develop an **AI-based solar panel detection system** using **satellite imagery**. This will support **predicting energy labels** for houses in the Netherlands, helping housing associations and property owners determine **which buildings require sustainability improvements**.  
+## Background and Context  
+The NOWATT project aims to accelerate the energy transition and mitigate grid congestion by promoting energy-neutral neighborhoods. This initiative integrates multiple stakeholders, including residents, SMEs, and government agencies, to optimize energy efficiency through AI-driven solutions.  
 
-By 2030, all rental properties must have an **energy label of at least D**, pushing landlords to implement **sustainability measures**. To assist in this transition, we aim to build a **computer vision model** that can **automatically detect solar panels** from satellite images and integrate this data with **public sources like Kadaster** to enhance energy label predictions.
+A key aspect of this project is leveraging artificial intelligence to categorize homes and residents, enabling personalized sustainability recommendations and district-level planning. One of the major factors influencing a home's energy efficiency rating is the presence of solar panels, as they significantly impact a building’s energy label score.  
+
+By 2030, all rental properties in the Netherlands must have an energy label of at least D. Housing associations and landlords will need to take sustainability measures to comply with these regulations. Nijhuis Bouw, an organization specializing in sustainable housing solutions, is particularly interested in automating the assessment of energy efficiency to streamline this transition.  
+
+To support this, our project focuses on developing an automated solar panel detection system that processes satellite and aerial images. This tool will integrate with public datasets such as Kadaster to enhance energy label predictions, helping stakeholders make informed decisions on housing sustainability.  
+
+## Problem Statement  
+Manually identifying solar panels from aerial and satellite imagery is time-consuming and inefficient. Automating this process with machine learning can significantly improve accuracy and scalability.  
+
+This project addresses two key challenges:  
+1. **Solar Panel Detection**: Developing a machine learning model that can determine whether a given house in an image has solar panels.  
+2. **BAG ID Retrieval**: Linking the detected solar panel data to the correct house using the BAG ID system, a unique identifier for each building in the Netherlands.  
+
+To achieve this, we will **design and implement a complete data and machine learning pipeline**, ensuring the automation of **data ingestion, preprocessing, model training, and deployment**. The pipeline will be designed for seamless integration into existing sustainability assessment systems used by Nijhuis Bouw.  
+
+The model will be trained using **satellite images from South Germany**, where solar panel density is high. However, in production, it needs to analyze **Google Maps images of houses in the Netherlands**, requiring robust generalization across different data sources.  
+
+Additionally, the results should ideally be integrated into the broader **energy labeling pipeline** to support sustainability assessments for housing associations and policymakers.  
+
+## Stakeholders  
+- **Developer Team for Solar Panel Detection**: Delvin Bacho & Navid Gharapanjeh  
+- **Project Lead & NOWATT Representative**: Selin Çolakhasanoglu (Saxion University of Applied Science, Data Science Team)  
+- **Client Organization**: Nijhuis Bouw (Sustainability and Housing Solutions) – Contact: Roel Prinsen  
+- **Funding Agency**: Taskforce for Applied Research SIA  
 
 ## Vision  
-**FOR** housing associations and property owners <br> \newline 
-**WHO** need to assess and improve the energy efficiency of buildings <br> \newline 
-**AND FOR** government agencies and sustainability organizations <br> \newline 
-**WHO** require reliable data to track energy transition progress <br> \newline 
-**THE** Solar Panel Detection System <br> \newline 
-**THAT** automatically detects solar panels from satellite imagery to assist in energy label prediction <br> \newline 
-**AND THAT** integrates with public property data (Kadaster) to provide actionable insights <br> \newline 
-**UNLIKE** with manual inspections <br> \newline 
-**OUR PRODUCT** offers an automated, scalable, and data-driven approach to sustainability assessment <br> \newline 
-
-
-- **Stakeholders**: Identify key roles (Data Scientists, Engineers, Business Users, etc.).
+**FOR** Nijhuis Bouw <br> \newline  
+**WHO** need an automated way to assess and improve the energy efficiency of buildings <br> \newline  
+**THE** Solar Panel Detection System <br> \newline  
+**THAT** automatically detects solar panels from aerial and satellite imagery to support energy label predictions <br> \newline  
+**AND THAT** integrates with public datasets (Kadaster) to provide accurate building-specific insights <br> \newline  
+**UNLIKE** manual surveys and outdated energy labeling methods <br> \newline  
+**OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
 - **Goals**: Define goals for the project.
 - **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
