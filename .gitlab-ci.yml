@@ -7,8 +7,8 @@ pages:
   # Functions that should be executed before the build script is run
   before_script:
     - tlmgr update --self
-    - tlmgr install beamer caption soul # Install missing LaTeX packages
   script:
+    - tlmgr install beamer caption soul # Optional: For building presentations
     - quarto render . --output-dir public
   artifacts:
     paths:
