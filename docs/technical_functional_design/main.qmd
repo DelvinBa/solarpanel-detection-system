@@ -15,23 +15,10 @@ format:
 ---
 
 
-# 1. Introduction and Goals
+# 1. Introduction
 This project aims to leverage artificial intelligence (AI) to detect solar panels from satellite images, integrate the results with Kadaster’s housing database. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented. The following goals are structured to maintain clarity and alignment with project objectives.  
 
-## 1-1. Solar Panel Detection Accuracy  
-**In order to** improve solar panel identification for accurate energy profiling,  
-**As** a data scientist,  
-**I want** to train and optimize a YOLO-based model to achieve **90%+ accuracy** using experiment tracking and hyperparameter tuning.  
 
-## 1-2. Kadaster Integration  
-**In order to** link detected solar panels with housing data for better energy label predictions,  
-**As** a developer,  
-**I want** to implement a **data-matching algorithm** that ensures at least **85% successful matches** with Kadaster’s housing database.  
-
-## 1-3. MLOps Pipeline  
-**In order to** ensure efficient, reproducible, and automated model training and deployment,  
-**As** an MLOps engineer,  
-**I want** to develop a **complete MLOps pipeline** that covers **data ingestion, versioning, preprocessing, model training, deployment, and monitoring**, 
 
 
 ## Background and Context  
@@ -71,8 +58,23 @@ Additionally, the results should ideally be integrated into the broader **energy
 **UNLIKE** manual surveys and outdated energy labeling methods <br> \newline  
 **OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
-- **Goals**: Define goals for the project.
-- **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
+## Goals
+## 1.1. Solar Panel Detection Accuracy  
+**In order to** To efficiently detect energy labels of houses in the Netherlands using Machine Learning in 2025,  
+**As** the Client Organization,  
+**We want** to automate the detection and integration of solar panel identification into the NOWATT project process using computer vision.  
+
+## 1.2. Kadaster Integration  
+**In order to** link detected solar panels with housing data for better energy label predictions,  
+**As** Project Lead,  
+**I want** to establish a relation between detected solar panels and **Kadaster’s housing database**, ensuring at least 85% successful matches.  
+
+## 1.3. MLOps Pipeline  
+**In order to** ensure efficient, reproducible, and automated model training and deployment,  
+**As** a developers,  
+**We want** to develop a **complete MLOps pipeline** that covers **data ingestion, preprocessing, model training, deployment, and monitoring**.
+
+**Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
 
 # 2. Constraints
 - **Technical constraints**: Hardware, software, cloud providers.
