@@ -1,0 +1,17 @@
+stages:
+  - pages
+
+pages:
+  stage: pages
+  image: ghcr.io/quarto-dev/quarto-full:latest
+  # Functions that should be executed before the build script is run
+  before_script:
+    - tlmgr update --self
+  script:
+    - tlmgr install beamer caption soul # Optional: For building presentations
+    - quarto render . --output-dir public
+  artifacts:
+    paths:
+      # The folder that contains the files to be exposed at the Page URL
+      - public
+
