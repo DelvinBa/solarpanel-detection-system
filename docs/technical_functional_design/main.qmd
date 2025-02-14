@@ -1,5 +1,5 @@
 ---
-title: "Arc42 Documentation"
+title: "Technical/Functional Design"
 author:
   - Navid Gharapanjeh
   - Delvin Bacho
@@ -16,10 +16,7 @@ format:
 
 
 # 1. Introduction
-This project aims to leverage artificial intelligence (AI) to detect solar panels from satellite images, integrate the results with Kadaster’s housing database. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented. The following goals are structured to maintain clarity and alignment with project objectives.  
-
-
-
+This project aims to leverage machine learning (ML) to detect solar panels from satellite images, detecting BAG/Housing ID. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented.
 
 ## Background and Context  
 The NOWATT project aims to accelerate the energy transition and mitigate grid congestion by promoting energy-neutral neighborhoods. This initiative integrates multiple stakeholders, including residents, SMEs, and government agencies, to optimize energy efficiency through AI-driven solutions.  
@@ -58,20 +55,22 @@ Additionally, the results should ideally be integrated into the broader **energy
 **UNLIKE** manual surveys and outdated energy labeling methods <br> \newline  
 **OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
-## Goals
-## 1.1. Solar Panel Detection Accuracy  
+## Business Goals
+The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. these are the goals that we try to achive:
+
+### Goal 1: Solar Panel Detection Accuracy  
 **In order to** To efficiently detect energy labels of houses in the Netherlands using Machine Learning in 2025,  
 **As** the Client Organization,  
 **We want** to automate the detection and integration of solar panel identification into the NOWATT project process using computer vision.  
 
-## 1.2. Kadaster Integration  
+### Goal 2: BAG/House ID Detection  
 **In order to** link detected solar panels with housing data for better energy label predictions,  
-**As** Project Lead,  
-**I want** to establish a relation between detected solar panels and **Kadaster’s housing database**, ensuring at least 85% successful matches.  
+**As** the Project Lead,  
+**I want** to establish a relation between detected solar panels and **BAG/House ID**, ensuring at least 85% successful matches.  
 
-## 1.3. MLOps Pipeline  
+### Goal 3: MLOps Pipeline  
 **In order to** ensure efficient, reproducible, and automated model training and deployment,  
-**As** a developers,  
+**As** the developer team,  
 **We want** to develop a **complete MLOps pipeline** that covers **data ingestion, preprocessing, model training, deployment, and monitoring**.
 
 **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
