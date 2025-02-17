@@ -71,7 +71,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 ### Goal 3: MLOps Pipeline  
 **In order to** ensure efficient, reproducible, and automated model training and deployment,  
 **As** the developer team,  
-**We want** to develop a **complete MLOps pipeline** that covers **data ingestion, preprocessing, model training, deployment, and monitoring**.
+**We want** to develop a **complete MLOps pipeline** that covers **Data Ingestion, Data prepocessing, Model Training, Model Analysis, Model versioning/validation, Model deployment**.
 
 **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
 
