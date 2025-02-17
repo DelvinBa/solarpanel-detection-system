@@ -75,50 +75,81 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
 
-## Non-Functional Requirements
+# Non-Functional Requirements
 
-### 1️ Performance
-- **Training Efficiency**  
-  - The training pipeline should complete within **≤3 hours for 50 epochs** when using GPU.  
-  - **Batch size and augmentation strategies** must optimize GPU utilization.  
+## 1️ Performance
 
-- **Inference Speed**  
-  - The model should perform **real-time inference in ≤10ms per image (on GPU)**.  
-  - **Batch processing** should handle **1000+ images in <10 minutes**.  
+### Training Efficiency
+- **Goal**: Ensure efficient training pipeline execution.
+- **Meter**: Completion time (hours) per 50 epochs.
+- **Must**: ≤ 3 hours (GPU-based training).
+- **Plan**: Optimize **batch size and augmentation** strategies for GPU utilization.
 
-- **Model Accuracy**  
-  - **mAP@50 ≥ 90% for 'High' class**, **mAP@50-95 ≥ 50% for all categories**.  
-  - Precision-Recall balance must be maintained at **>85% recall for critical classes**.  
+### Inference Speed
+- **Goal**: Achieve real-time inference.
+- **Meter**: Time per image (ms) on GPU.
+- **Must**: ≤ 10ms per image.
+- **Plan**: Implement **batch processing** to support **1000+ images in <10 minutes**.
 
-### 2️ Scalability
-- **Inference Scaling**  
-  - The system should support **scaling up to 1000 requests per second (RPS)**.  
-  - Use **GPU autoscaling (AWS EKS, EC2 G5, or ECS Fargate with GPU)** for large workloads.  
+### Model Accuracy
+- **Goal**: Maintain high detection accuracy.
+- **Meter**: mAP@50 and mAP@50-95 scores.
+- **Must**:
+  - **mAP@50 ≥ 90%** for high-priority classes.
+  - **mAP@50-95 ≥ 50%** across all categories.
+  - Recall **>85%** for critical classes.
 
-- **Storage Scalability**  
-  - The system should handle **>10TB of image data**, using **MinIO with auto-tiering to AWS S3 Glacier**.  
+## 2️ Scalability
 
-### 3️ Security & Compliance
-- **Access Control**  
-  - Implement **Role-Based Access Control (RBAC)** for model access using AWS IAM.  
-  - **Airflow DAG execution should be restricted to authorized users** via IAM roles.  
+### Inference Scaling
+- **Goal**: Support high request throughput.
+- **Meter**: Requests per second (RPS).
+- **Must**: Scale up to **1000 RPS**.
+- **Plan**: Use **GPU autoscaling** (AWS EKS, EC2 G5, or ECS Fargate).
 
-- **Compliance**  
-  - The system must comply with **GDPR for user-generated image data storage and processing**.  
-  - **Model access logs must be maintained for 180 days** to enable forensic audits.  
+### Storage Scalability
+- **Goal**: Efficiently manage large datasets.
+- **Meter**: Total storage capacity (TB).
+- **Must**: Support **>10TB of image data**.
+- **Plan**: Utilize **MinIO with auto-tiering to AWS S3 Glacier**.
 
-### 5️ Maintainability & Observability
-- **Monitoring & Logging**  
-  - **Model training metrics (loss, mAP, IoU) should be logged in MLflow**.  
-  - **System logs should be stored in AWS CloudWatch or ELK Stack**.  
 
-- **Alerting & Issue Tracking**  
-  - Implement **AWS SNS/Slack alerts** for model degradation (mAP drop ≥ 10%).  
-  - Use **Prometheus + Grafana** for monitoring MinIO, inference latency, and Airflow DAGs.  
+## 3️ Security & Compliance
 
-- **CI/CD & Model Deployment**  
-  - New models must be **automatically deployed if mAP ≥ baseline threshold**.  
-  - **Rollback to previous `best.pt` should be possible within 5 minutes** in case of failures.  
+### Access Control
+- **Goal**: Implement secure access policies.
+- **Meter**: RBAC enforcement for model access.
+- **Must**: Restrict Airflow DAG execution via IAM roles.
+- **Plan**: Use **AWS IAM-based RBAC**.
+
+### Compliance
+- **Goal**: Ensure regulatory compliance.
+- **Meter**: GDPR adherence for image data storage.
+- **Must**: Retain model access logs for **180 days**.
+- **Plan**: Implement forensic audit logging.
+
+## 4️ Maintainability & Observability
+
+### Monitoring & Logging
+- **Goal**: Enable real-time tracking of system performance.
+- **Meter**: Logging and monitoring tool coverage.
+- **Must**:
+  - Log **model training metrics** (loss, mAP, IoU) in **MLflow**.
+  - Store system logs in **AWS CloudWatch or ELK Stack**.
+
+### Alerting & Issue Tracking
+- **Goal**: Proactively detect system issues.
+- **Meter**: Alerting mechanism coverage.
+- **Must**:
+  - Use **AWS SNS/Slack alerts** for mAP drops **≥10%**.
+  - Implement **Prometheus + Grafana** for system monitoring.
+
+### CI/CD & Model Deployment
+- **Goal**: Automate and streamline deployments.
+- **Meter**: Deployment automation coverage.
+- **Must**:
+  - Auto-deploy models **if mAP ≥ baseline threshold**.
+  - Support **rollback within 5 minutes** to previous `best.pt`.  
 
 # 2. Constraints
 - **Technical constraints**: Hardware, software, cloud providers.
