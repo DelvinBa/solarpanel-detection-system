@@ -16,7 +16,6 @@ website:
       - section: "Project Documentation"
         contents:
          - docs/technical_functional_design/main.qmd
-         - docs/non_technical_requirements/main.qmd
 
 format:
   html:

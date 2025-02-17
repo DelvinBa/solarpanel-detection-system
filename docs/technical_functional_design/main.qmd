@@ -75,9 +75,9 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 **Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
 
-# Non-Functional Requirements
+## Non-Functional Requirements
 
-## 1️ Performance
+### 1️ Performance
 - **Training Efficiency**  
   - The training pipeline should complete within **≤3 hours for 50 epochs** when using GPU.  
   - **Batch size and augmentation strategies** must optimize GPU utilization.  
@@ -90,9 +90,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
   - **mAP@50 ≥ 90% for 'High' class**, **mAP@50-95 ≥ 50% for all categories**.  
   - Precision-Recall balance must be maintained at **>85% recall for critical classes**.  
 
----
-
-## 2️ Scalability
+### 2️ Scalability
 - **Inference Scaling**  
   - The system should support **scaling up to 1000 requests per second (RPS)**.  
   - Use **GPU autoscaling (AWS EKS, EC2 G5, or ECS Fargate with GPU)** for large workloads.  
@@ -100,9 +98,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 - **Storage Scalability**  
   - The system should handle **>10TB of image data**, using **MinIO with auto-tiering to AWS S3 Glacier**.  
 
----
-
-## 3️ Security & Compliance
+### 3️ Security & Compliance
 - **Access Control**  
   - Implement **Role-Based Access Control (RBAC)** for model access using AWS IAM.  
   - **Airflow DAG execution should be restricted to authorized users** via IAM roles.  
@@ -111,9 +107,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
   - The system must comply with **GDPR for user-generated image data storage and processing**.  
   - **Model access logs must be maintained for 180 days** to enable forensic audits.  
 
----
-
-## 5️ Maintainability & Observability
+### 5️ Maintainability & Observability
 - **Monitoring & Logging**  
   - **Model training metrics (loss, mAP, IoU) should be logged in MLflow**.  
   - **System logs should be stored in AWS CloudWatch or ELK Stack**.  
@@ -125,8 +119,6 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 - **CI/CD & Model Deployment**  
   - New models must be **automatically deployed if mAP ≥ baseline threshold**.  
   - **Rollback to previous `best.pt` should be possible within 5 minutes** in case of failures.  
-
----
 
 # 2. Constraints
 - **Technical constraints**: Hardware, software, cloud providers.
