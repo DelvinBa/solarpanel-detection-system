@@ -1,5 +1,5 @@
 ---
-title: "Technical/Functional Design"
+title: "Functional Design - Documentation"
 author:
   - Navid Gharapanjeh
   - Delvin Bacho
@@ -55,7 +55,17 @@ Additionally, the results should ideally be integrated into the broader **energy
 **UNLIKE** manual surveys and outdated energy labeling methods <br> \newline  
 **OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
-## Business Goals
+
+## Project Artifacts & Handover Documents
+Since the project started in the past, we got some documents and artifacts we can work with. Here is a list of things we got:
+
+- **[Research Paper & Satellite Imagery Dataset](https://www.nature.com/articles/s41597-023-02539-8):** A VHR satellite imagery dataset from germany with annotated residential solar panels for training detection models and supporting energy monitoring research.  
+- **Python Script to Split Data:** Script to divide satellite images into training and test datasets (`split_trainTest.py`).  
+- **Household Data for Energy Labels:** CSV files with data on 1000 houses in Enschede for energy label calculations (`merged_3dbag_EPonline_Enschede.csv`).  
+- **YOLOv8 Training Notebook and Configuration:** Jupyter Notebook for training a YOLOv8 model with a `data.yaml` configuration file (`yolo_SolarPanel.ipynb`, `data.yaml`).  
+- **Trained YOLOv8 Model:** Pre-trained YOLOv8 model for solar panel detection (`yolov8n.pt`).  
+
+## Business Goals and Functional Requirements
 The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. these are the goals that we try to achive:
 
 ### Goal 1: Solar Panel Detection Accuracy  
@@ -63,17 +73,38 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **As** the Client Organization,  
 **We want** to automate the detection and integration of solar panel identification into the NOWATT project process using computer vision.  
 
-### Goal 2: BAG/House ID Detection  
-**In order to** link detected solar panels with housing data for better energy label predictions,  
+**Requirements:** 
+| ID    | Description | MoSCoW |
+|-------|------------|--------|
+| R-01  | Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels. | Must |
+| R-02  | Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification. | Must |
+| R-03  | Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data. | Should |
+
+
+### Goal 2: House ID Detection / Connect with Kadaster API
+**In order to** link detected solar panel detections with the existing housing data for better energy label predictions,  
 **As** the Project Lead,  
-**I want** to establish a relation between detected solar panels and **BAG/House ID**, ensuring at least 85% successful matches.  
+**I want** to get also the House ID as an output of the pipeline/system using the Kadaster API, ensuring at least 85% successful matches.  
+
+**Requirements:** 
+| ID    | Description | MoSCoW |
+|-------|------------|--------|
+| R-04  | Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs. | Should |
+| R-05  | Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset. | Could |
 
 ### Goal 3: MLOps Pipeline  
 **In order to** ensure efficient, reproducible, and automated model training and deployment,  
 **As** the developer team,  
 **We want** to develop a **complete MLOps pipeline** that covers **Data Ingestion, Data prepocessing, Model Training, Model Analysis, Model versioning/validation, Model deployment**.
 
-**Requirements**: Define functional and non-functional requirements and specify them using scenarios (requirements needs to be linked to goals).
+| ID    | Description | MoSCoW |
+|-------|------------|--------|
+| R-06  | Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results. | Must |
+| R-07  | Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution. | Must |
+| R-08  | Implement automated data preprocessing to ensure images are correctly formatted before model training. | Must |
+| R-09  | Enable automated model training when new training data becomes available, reducing manual intervention. | Could |
+
+
 
 # Non-Functional Requirements
 
@@ -150,69 +181,3 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 - **Must**:
   - Auto-deploy models **if mAP ≥ baseline threshold**.
   - Support **rollback within 5 minutes** to previous `best.pt`.  
-
-# 2. Constraints
-- **Technical constraints**: Hardware, software, cloud providers.
-- **Regulatory & Compliance**: GDPR, AI ethics, data security.
-- **Operational constraints**: Budget, team skills, deadlines.
-
-# 3. System Scope and Context
-- **Scope**: Define what is included/excluded in the project.
-- **Context Diagram**: Illustrate data sources, models, and outputs.
-
-# 4. Solution Strategy
-- **Data pipeline strategy**: Batch vs. real-time.
-- **ML model strategy**: Pre-trained vs. custom models.
-- **Deployment strategy**: On-premises, cloud, or edge.
-- **Scaling strategy**: Horizontal vs. vertical scaling.
-
-# 5. Building Block View
-- **Components Overview**:
-  - Data ingestion
-  - Data preprocessing
-  - Feature engineering
-  - Model training
-  - Model evaluation
-  - Model deployment
-- **Component Diagram**: Visualize these blocks and their interactions.
-
-# 6. Runtime View
-- **Data flow**: How data moves through the system.
-- **Model serving process**: How predictions are generated and served.
-- **Monitoring & logging**: Performance tracking and debugging.
-
-# 7. Deployment View
-- **Infrastructure choices**: Cloud services, local servers.
-- **CI/CD pipeline for ML models**.
-- **Containerization strategy**: Docker, Kubernetes.
-- **Versioning & rollback mechanisms**.
-
-# 8. Cross-cutting Concepts
-- **Security & Access Control**.
-- **Data Governance & Lineage**.
-- **MLOps Best Practices**.
-- **Bias & Fairness Considerations**.
-
-# 9. Architecture Decisions
-- **ADR (Architecture Decision Records)**
-  - Choice of model framework
-  - Database selection
-  - API design choices
-  - Model versioning policy
-
-# 10. Quality Requirements
-- **Model Performance Metrics**.
-- **Scalability & Maintainability**.
-- **Explainability & Interpretability**.
-- **Fault tolerance & disaster recovery**.
-
-# 11. Risks and Technical Debt
-- **Potential biases in data and models**.
-- **Computational cost and resource constraints**.
-- **Integration challenges with existing systems**.
-
-# 12. Glossary
-- Define key terms related to ML, AI, and MLOps.
-
----
-
