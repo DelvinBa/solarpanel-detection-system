@@ -1,5 +1,5 @@
 ---
-title: "Functional Design - Documentation"
+title: "Functional Design"
 author:
   - Navid Gharapanjeh
   - Delvin Bacho
@@ -15,10 +15,9 @@ format:
 ---
 
 
-# 1. Introduction
 This project aims to leverage machine learning (ML) to detect solar panels from satellite images, detecting BAG/Housing ID. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented.
 
-## Background and Context  
+## 1 Background and Context  
 The NOWATT project aims to accelerate the energy transition and mitigate grid congestion by promoting energy-neutral neighborhoods. This initiative integrates multiple stakeholders, including residents, SMEs, and government agencies, to optimize energy efficiency through AI-driven solutions.  
 
 A key aspect of this project is leveraging artificial intelligence to categorize homes and residents, enabling personalized sustainability recommendations and district-level planning. One of the major factors influencing a home's energy efficiency rating is the presence of solar panels, as they significantly impact a building’s energy label score.  
@@ -27,7 +26,7 @@ By 2030, all rental properties in the Netherlands must have an energy label of a
 
 To support this, our project focuses on developing an automated solar panel detection system that processes satellite and aerial images. This tool will integrate with public datasets such as Kadaster to enhance energy label predictions, helping stakeholders make informed decisions on housing sustainability.  
 
-## Problem Statement  
+## 2 Problem Statement  
 Manually identifying solar panels from aerial and satellite imagery is time-consuming and inefficient. Automating this process with machine learning can significantly improve accuracy and scalability.  
 
 This project addresses two key challenges:  
@@ -40,13 +39,13 @@ The model will be trained using **satellite images from South Germany**, where s
 
 Additionally, the results should ideally be integrated into the broader **energy labeling pipeline** to support sustainability assessments for housing associations and policymakers.  
 
-## Stakeholders  
+## 3 Stakeholders  
 - **Developer Team for Solar Panel Detection**: Delvin Bacho & Navid Gharapanjeh  
 - **Project Lead & NOWATT Representative**: Selin Çolakhasanoglu (Saxion University of Applied Science, Data Science Team)  
 - **Client Organization**: Nijhuis Bouw (Sustainability and Housing Solutions) – Contact: Roel Prinsen  
 - **Funding Agency**: Taskforce for Applied Research SIA  
 
-## Vision  
+## 4 Vision  
 **FOR** Nijhuis Bouw <br> \newline  
 **WHO** need an automated way to assess and improve the energy efficiency of buildings <br> \newline  
 **THE** Solar Panel Detection System <br> \newline  
@@ -56,7 +55,7 @@ Additionally, the results should ideally be integrated into the broader **energy
 **OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
 
-## Project Artifacts & Handover Documents
+## 5 Project Artifacts & Handover Documents
 Since the project started in the past, we got some documents and artifacts we can work with. Here is a list of things we got:
 
 - **[Research Paper & Satellite Imagery Dataset](https://www.nature.com/articles/s41597-023-02539-8):** A VHR satellite imagery dataset from germany with annotated residential solar panels for training detection models and supporting energy monitoring research.  
@@ -65,7 +64,7 @@ Since the project started in the past, we got some documents and artifacts we ca
 - **YOLOv8 Training Notebook and Configuration:** Jupyter Notebook for training a YOLOv8 model with a `data.yaml` configuration file (`yolo_SolarPanel.ipynb`, `data.yaml`).  
 - **Trained YOLOv8 Model:** Pre-trained YOLOv8 model for solar panel detection (`yolov8n.pt`).  
 
-## Business Goals and Functional Requirements
+## 6 Business Goals and Functional Requirements
 The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. these are the goals that we try to achive:
 
 ### Goal 1: Solar Panel Detection Accuracy  
@@ -73,11 +72,10 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **As** the Client Organization,  
 **We want** to automate the detection and integration of solar panel identification into the NOWATT project process using computer vision.  
 
-**Requirements:** 
-| ID    | Description | MoSCoW |
-|-------|------------|--------|
-| R-01  | Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels. | Must |
-| R-02  | Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification. | Must |
+| ID    | Requirement Description                                                                                     | MoSCoW |
+|-------|------------------------------------------------------------------------------------------------|--------|
+| R-01  | Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels. | Must   |
+| R-02  | Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification. | Must   |
 | R-03  | Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data. | Should |
 
 
@@ -86,8 +84,8 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **As** the Project Lead,  
 **I want** to get also the House ID as an output of the pipeline/system using the Kadaster API, ensuring at least 85% successful matches.  
 
-**Requirements:** 
-| ID    | Description | MoSCoW |
+
+| ID    | Requirement Description | MoSCoW |
 |-------|------------|--------|
 | R-04  | Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs. | Should |
 | R-05  | Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset. | Could |
@@ -97,7 +95,8 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **As** the developer team,  
 **We want** to develop a **complete MLOps pipeline** that covers **Data Ingestion, Data prepocessing, Model Training, Model Analysis, Model versioning/validation, Model deployment**.
 
-| ID    | Description | MoSCoW |
+
+| ID    | Requirement Description | MoSCoW |
 |-------|------------|--------|
 | R-06  | Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results. | Must |
 | R-07  | Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution. | Must |
@@ -106,23 +105,23 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 
 
-# Non-Functional Requirements
+## 7 Non-Functional Requirements
 
-## 1️ Performance
+### 7.1 Performance
 
-### Training Efficiency
+#### Training Efficiency
 - **Goal**: Ensure efficient training pipeline execution.
 - **Meter**: Completion time (hours) per 50 epochs.
 - **Must**: ≤ 3 hours (GPU-based training).
 - **Plan**: Optimize **batch size and augmentation** strategies for GPU utilization.
 
-### Inference Speed
+#### Inference Speed
 - **Goal**: Achieve real-time inference.
 - **Meter**: Time per image (ms) on GPU.
 - **Must**: ≤ 10ms per image.
 - **Plan**: Implement **batch processing** to support **1000+ images in <10 minutes**.
 
-### Model Accuracy
+#### Model Accuracy
 - **Goal**: Maintain high detection accuracy.
 - **Meter**: mAP@50 and mAP@50-95 scores.
 - **Must**:
@@ -130,54 +129,54 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
   - **mAP@50-95 ≥ 50%** across all categories.
   - Recall **>85%** for critical classes.
 
-## 2️ Scalability
+### 7.2 Scalability
 
-### Inference Scaling
+#### Inference Scaling
 - **Goal**: Support high request throughput.
 - **Meter**: Requests per second (RPS).
 - **Must**: Scale up to **1000 RPS**.
 - **Plan**: Use **GPU autoscaling** (AWS EKS, EC2 G5, or ECS Fargate).
 
-### Storage Scalability
+#### Storage Scalability
 - **Goal**: Efficiently manage large datasets.
 - **Meter**: Total storage capacity (TB).
 - **Must**: Support **>10TB of image data**.
 - **Plan**: Utilize **MinIO with auto-tiering to AWS S3 Glacier**.
 
 
-## 3️ Security & Compliance
+### 7.3️ Security & Compliance
 
-### Access Control
+#### Access Control
 - **Goal**: Implement secure access policies.
 - **Meter**: RBAC enforcement for model access.
 - **Must**: Restrict Airflow DAG execution via IAM roles.
 - **Plan**: Use **AWS IAM-based RBAC**.
 
-### Compliance
+#### Compliance
 - **Goal**: Ensure regulatory compliance.
 - **Meter**: GDPR adherence for image data storage.
 - **Must**: Retain model access logs for **180 days**.
 - **Plan**: Implement forensic audit logging.
 
-## 4️ Maintainability & Observability
+### 7.4️ Maintainability & Observability
 
-### Monitoring & Logging
+#### Monitoring & Logging
 - **Goal**: Enable real-time tracking of system performance.
 - **Meter**: Logging and monitoring tool coverage.
 - **Must**:
   - Log **model training metrics** (loss, mAP, IoU) in **MLflow**.
   - Store system logs in **AWS CloudWatch or ELK Stack**.
 
-### Alerting & Issue Tracking
+#### Alerting & Issue Tracking
 - **Goal**: Proactively detect system issues.
 - **Meter**: Alerting mechanism coverage.
 - **Must**:
   - Use **AWS SNS/Slack alerts** for mAP drops **≥10%**.
   - Implement **Prometheus + Grafana** for system monitoring.
 
-### CI/CD & Model Deployment
+#### CI/CD & Model Deployment
 - **Goal**: Automate and streamline deployments.
 - **Meter**: Deployment automation coverage.
 - **Must**:
   - Auto-deploy models **if mAP ≥ baseline threshold**.
-  - Support **rollback within 5 minutes** to previous `best.pt`.  
+  - Support **rollback within 5 minutes** to previous `best.pt`.

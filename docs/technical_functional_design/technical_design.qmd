@@ -1,5 +1,5 @@
 ---
-title: "Technical Design - Documentation"
+title: "Technical Design"
 author:
   - Navid Gharapanjeh
   - Delvin Bacho
