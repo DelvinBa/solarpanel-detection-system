@@ -17,7 +17,7 @@ format:
 
 This project aims to leverage machine learning (ML) to detect solar panels from satellite images, detecting BAG/Housing ID. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented.
 
-## 1 Background and Context  
+## 1. Background and Context  
 The NOWATT project aims to accelerate the energy transition and mitigate grid congestion by promoting energy-neutral neighborhoods. This initiative integrates multiple stakeholders, including residents, SMEs, and government agencies, to optimize energy efficiency through AI-driven solutions.  
 
 A key aspect of this project is leveraging artificial intelligence to categorize homes and residents, enabling personalized sustainability recommendations and district-level planning. One of the major factors influencing a home's energy efficiency rating is the presence of solar panels, as they significantly impact a building’s energy label score.  
@@ -26,7 +26,7 @@ By 2030, all rental properties in the Netherlands must have an energy label of a
 
 To support this, our project focuses on developing an automated solar panel detection system that processes satellite and aerial images. This tool will integrate with public datasets such as Kadaster to enhance energy label predictions, helping stakeholders make informed decisions on housing sustainability.  
 
-## 2 Problem Statement  
+## 2. Problem Statement  
 Manually identifying solar panels from aerial and satellite imagery is time-consuming and inefficient. Automating this process with machine learning can significantly improve accuracy and scalability.  
 
 This project addresses two key challenges:  
@@ -35,17 +35,17 @@ This project addresses two key challenges:
 
 To achieve this, we will **design and implement a complete data and machine learning pipeline**, ensuring the automation of **data ingestion, preprocessing, model training, and deployment**. The pipeline will be designed for seamless integration into existing sustainability assessment systems used by Nijhuis Bouw.  
 
-The model will be trained using **satellite images from South Germany**, where solar panel density is high. However, in production, it needs to analyze **Google Maps images of houses in the Netherlands**, requiring robust generalization across different data sources.  
+The model will be trained using **satellite images from South Germany**, where solar panel density is high. However, in production, it needs to analyze **aerial images of houses in the Netherlands**, requiring robust generalization across different data sources.  
 
 Additionally, the results should ideally be integrated into the broader **energy labeling pipeline** to support sustainability assessments for housing associations and policymakers.  
 
-## 3 Stakeholders  
+## 3. Stakeholders  
 - **Developer Team for Solar Panel Detection**: Delvin Bacho & Navid Gharapanjeh  
 - **Project Lead & NOWATT Representative**: Selin Çolakhasanoglu (Saxion University of Applied Science, Data Science Team)  
 - **Client Organization**: Nijhuis Bouw (Sustainability and Housing Solutions) – Contact: Roel Prinsen  
 - **Funding Agency**: Taskforce for Applied Research SIA  
 
-## 4 Vision  
+## 4. Vision  
 **FOR** Nijhuis Bouw <br> \newline  
 **WHO** need an automated way to assess and improve the energy efficiency of buildings <br> \newline  
 **THE** Solar Panel Detection System <br> \newline  
@@ -55,16 +55,25 @@ Additionally, the results should ideally be integrated into the broader **energy
 **OUR PRODUCT** offers an automated, scalable, and ML-driven approach to sustainability assessment <br> \newline  
 
 
-## 5 Project Artifacts & Handover Documents
+## 5. Project Artifacts & Handover Documents
 Since the project started in the past, we got some documents and artifacts we can work with. Here is a list of things we got:
 
-- **[Research Paper & Satellite Imagery Dataset](https://www.nature.com/articles/s41597-023-02539-8):** A VHR satellite imagery dataset from germany with annotated residential solar panels for training detection models and supporting energy monitoring research.  
-- **Python Script to Split Data:** Script to divide satellite images into training and test datasets (`split_trainTest.py`).  
-- **Household Data for Energy Labels:** CSV files with data on 1000 houses in Enschede for energy label calculations (`merged_3dbag_EPonline_Enschede.csv`).  
-- **YOLOv8 Training Notebook and Configuration:** Jupyter Notebook for training a YOLOv8 model with a `data.yaml` configuration file (`yolo_SolarPanel.ipynb`, `data.yaml`).  
-- **Trained YOLOv8 Model:** Pre-trained YOLOv8 model for solar panel detection (`yolov8n.pt`).  
+- **[Research Paper & Satellite Imagery Dataset](https://www.nature.com/articles/s41597-023-02539-8):**
+A VHR satellite imagery dataset from germany with annotated residential solar panels for training detection models and supporting energy monitoring research.  
 
-## 6 Business Goals and Functional Requirements
+- **Python Script to Split Data:** 
+Script to divide satellite images into training and test datasets (`split_trainTest.py`).  
+
+- **Household Data for Energy Labels:**  
+  CSV files containing building and energy label data for houses in Enschede.  
+  - `merged_3dbag_EPonline_Enschede.csv`: Contains detailed building information.  
+  - `subset_CDF_Enschede.csv`: Includes utility data like gas connections and network operator info.  
+  - These datasets are merged for analysis. 
+
+- **Energy Label Analysis Notebook:**  
+Jupyter Notebook (`energie_label_final-Enschede.ipynb`) that processes the merged household datasets, cleans and integrates data, and trains a machine learning model to classify energy labels. 
+
+## 6. Business Goals and Functional Requirements
 The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. these are the goals that we try to achive:
 
 ### Goal 1: Solar Panel Detection Accuracy  
@@ -101,11 +110,10 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 | R-06  | Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results. | Must |
 | R-07  | Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution. | Must |
 | R-08  | Implement automated data preprocessing to ensure images are correctly formatted before model training. | Must |
-| R-09  | Enable automated model training when new training data becomes available, reducing manual intervention. | Could |
 
 
 
-## 7 Non-Functional Requirements
+## 7. Non-Functional Requirements
 
 ### 7.1 Performance
 
