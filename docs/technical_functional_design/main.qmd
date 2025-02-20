@@ -143,7 +143,6 @@ Each of these components was carefully selected based on **scalability, ease of 
 - **Scalability Improvements**: If workload increases, consider **switching to cloud-based storage (AWS S3, GCS)**.
 - **Automated Model Retraining**: Using **Airflow triggers or Kubeflow** for continuous learning.
 
-
 # 10. Quality Requirements
 - **Model Performance Metrics**.
 - **Scalability & Maintainability**.
