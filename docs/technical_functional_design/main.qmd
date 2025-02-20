@@ -116,12 +116,33 @@ Additionally, the results should ideally be integrated into the broader **energy
 - **MLOps Best Practices**.
 - **Bias & Fairness Considerations**.
 
-# 9. Architecture Decisions
-- **ADR (Architecture Decision Records)**
-  - Choice of model framework
-  - Database selection
-  - API design choices
-  - Model versioning policy
+# 9. Analytics Platform Documentation (Architecture Decisions)
+
+## Overview
+In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration and **MinIO** as the storage backend. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing. 
+
+### Workflow Structure
+1. **MinIO** acts as an **object storage system** to store raw images and model outputs.
+2. **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.
+3. **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.
+
+Each of these components was carefully selected based on **scalability, ease of integration, and performance**. The table below provides a comparison of the chosen tools and their alternatives.
+
+
+### Selected Components and Alternatives Comparison
+
+| **Component** | **Chosen Tool** | **Why Chosen?** | **Alternative(s)** | **Why Not Chosen?** |
+|--------------|---------------|----------------|----------------|----------------|
+| **Storage** | **MinIO** | S3-compatible, lightweight, and works well on-premises | AWS S3, Azure Blob, GCS | Managed cloud services are costlier and add vendor lock-in |
+| **Orchestration** | **Apache Airflow** | Industry-standard, scalable, and integrates well with MinIO | Prefect, Dagster, Kubeflow | Prefect is easier but lacks some enterprise features, Kubeflow is complex |
+| **Model Training** | **YOLOv8** | State-of-the-art real-time object detection, easy deployment | Detectron2, MMDetection, EfficientDet | Detectron2 offers customization but is more complex, EfficientDet is slower for real-time processing |
+
+
+## Future Considerations
+- **ETL/ELT Pipelines**: In the future, adding **data transformation and preprocessing** may be necessary.
+- **Scalability Improvements**: If workload increases, consider **switching to cloud-based storage (AWS S3, GCS)**.
+- **Automated Model Retraining**: Using **Airflow triggers or Kubeflow** for continuous learning.
+
 
 # 10. Quality Requirements
 - **Model Performance Metrics**.
