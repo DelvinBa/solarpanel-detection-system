@@ -23,7 +23,5 @@ format:
 
 Welcome to the **Automatic Solar Panel Detection** documentation!
 
-The main document is located under **technical_design/main_document**.
-
-Additional documents include research papers, retrospectives, and other project-related reports.
+On the left you can see each document of our documentation.
 
