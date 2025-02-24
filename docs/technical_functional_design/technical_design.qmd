@@ -14,9 +14,9 @@ format:
         - left=20mm
 ---
 
-# 1. Introduction
 
-
+# 1. Introduction 
+This project aims to leverage artificial intelligence (AI) to detect solar panels from satellite images, integrate the results with Kadaster’s housing database. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented. The following goals are structured to maintain clarity and alignment with project objectives.  
 
 # 2. Constraints
 - **Technical constraints**: Hardware, software, cloud providers.
@@ -60,12 +60,34 @@ format:
 - **MLOps Best Practices**.
 - **Bias & Fairness Considerations**.
 
-# 9. Architecture Decisions
-- **ADR (Architecture Decision Records)**
-  - Choice of model framework
-  - Database selection
-  - API design choices
-  - Model versioning policy
+# 9. Analytics Platform Documentation (Architecture Decisions)
+
+## Overview
+In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration and **MinIO** as the storage backend. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing. 
+
+### Workflow Structure
+1. **MinIO** acts as an **object storage system** to store raw images and model outputs.
+2. **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.
+3. **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.
+
+Each of these components was carefully selected based on **scalability, ease of integration, and performance**. The table below provides a comparison of the chosen tools and their alternatives.
+
+
+### Selected Components and Alternatives Comparison
+
+| **Component**       | **Chosen Tool**   | **Why Chosen?**                                                                                                                                                    | **Alternative(s)**        | **Why Not Chosen?**                                                                                                                                  |
+|--------------------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Storage**       | **MinIO**        | - S3-compatible API, making migration and integration easier  <br> - Lightweight and can be self-hosted on-premises or in the cloud  <br> - Scalable and performant for large datasets  <br> - Open-source and cost-effective compared to managed solutions | AWS S3, Azure Blob, GCS | - Managed cloud services can be expensive for large-scale storage  <br> - Vendor lock-in concerns  <br> - Less flexibility in self-hosted environments |
+| **Orchestration** | **Apache Airflow** | - Industry-standard tool for workflow orchestration  <br> - Scalable, supports distributed execution  <br> - Large community and extensive plugin support  <br> - Integrates well with MinIO, Python, and ML pipelines | Prefect, Dagster, Kubeflow | - **Prefect** is easier to use but lacks some enterprise-level capabilities like complex DAGs  <br> - **Dagster** is great for data pipelines but less mature for ML workflows  <br> - **Kubeflow** is powerful but complex to set up and maintain |
+| **Model Training** | **YOLOv8**       | - State-of-the-art real-time object detection  <br> - Pre-trained models available, reducing training time  <br> - Optimized for edge and cloud deployment  <br> - Faster inference compared to alternatives, making it suitable for real-time applications | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve  <br> - **MMDetection** is powerful but requires extensive configuration  <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection |
+
+
+
+## Future Considerations
+- **ETL/ELT Pipelines**: In the future, adding **data transformation and preprocessing** may be necessary.
+- **Scalability Improvements**: If workload increases, consider **switching to cloud-based storage (AWS S3, GCS)**.
+- **Automated Model Retraining**: Using **Airflow triggers or Kubeflow** for continuous learning.
+
 
 # 10. Quality Requirements
 - **Model Performance Metrics**.
