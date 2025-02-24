@@ -19,7 +19,31 @@ git clone <repository-url>
 cd <repository-folder>
 ```
 
-### **2. Start the Required Services with Docker**
+### **2. Create and Use a Virtual Environment**
+
+It is recommended to use a virtual environment to manage dependencies.
+
+#### **Create a Virtual Environment**
+```sh
+python -m venv venv
+```
+
+#### **Activate the Virtual Environment**
+- **For Linux/macOS:**
+  ```sh
+  source venv/bin/activate
+  ```
+- **For Windows:**
+  ```sh
+  venv\Scripts\activate
+  ```
+
+#### **Install Dependencies**
+```sh
+pip install -r requirements.txt
+```
+
+### **3. Start the Required Services with Docker**
 
 Run the following command to start MinIO and Airflow:
 
@@ -32,14 +56,6 @@ This will start:
 - **MinIO** (for object storage)
 - **Apache Airflow** (if used for orchestration)
 - **PostgreSQL** (for Airflow's database)
-
-### **3. Install Dependencies**
-
-Ensure Python dependencies are installed:
-
-```sh
-pip install -r requirements.txt
-```
 
 ### **4. Verify MinIO is Running**
 
@@ -56,23 +72,44 @@ Login with:
 
 Ensure an **images** bucket exists with images uploaded.
 
-### **5. Copy Python File to Airflow DAGs Folder**
+### **5. Place Python File in Local DAGs Folder**
 
-To copy a DAG file (e.g., `my_dag.py`) to the Airflow DAGs folder, run:
+Instead of copying the DAG file manually, you can mount a local folder in `docker-compose.yml`.
+
+#### **Update `docker-compose.yml` to Include the DAGs Volume**
+
+Modify the `airflow-webserver` and `airflow-scheduler` services:
+
+```yaml
+  airflow-webserver:
+    volumes:
+      - ./dags:/opt/airflow/dags
+  
+  airflow-scheduler:
+    volumes:
+      - ./dags:/opt/airflow/dags
+```
+
+This ensures that all DAG files placed in the `./dags` folder on your local machine will automatically be available inside the Airflow container.
+
+#### **Place the DAG File in the Local Folder**
+
+Move your DAG file (e.g., `my_dag.py`) into the `dags` folder in your project directory:
 
 ```sh
-docker cp my_dag.py airflow_webserver:/opt/airflow/dags/
+mkdir -p dags
+mv my_dag.py dags/
 ```
 
 Restart Airflow services to detect the new DAG:
 
 ```sh
-docker restart airflow_scheduler airflow_webserver
+docker-compose restart airflow-webserver airflow-scheduler
 ```
 
 ### **6. Run the YOLOv8 Detection Script**
 
-Execute the Python script:
+Ensure your virtual environment is activated, then execute the Python script:
 
 ```sh
 python process_minio_yolo.py
@@ -96,10 +133,13 @@ docker-compose down
 
 ```
 .
+├── dags  # Folder containing Airflow DAGs
+│   ├── my_dag.py  # DAG script
 ├── docker-compose.yml  # Docker configuration
 ├── process_minio_yolo.py  # Main script to run YOLO detection
 ├── requirements.txt  # Python dependencies
 ├── README.md  # This file
+├── venv  # Virtual environment (if created)
 └── yolo_model.pt  # Trained YOLOv8 model (ensure it's present)
 ```
 

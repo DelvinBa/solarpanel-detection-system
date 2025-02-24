@@ -8,7 +8,7 @@ from ultralytics import YOLO
 MINIO_ENDPOINT = "http://localhost:9000"  # Update if running remotely
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
-BUCKET_NAME = "images"
+BUCKET_NAME = "mybucket"
 
 # YOLO model path (update with your model file path)
 YOLO_MODEL_PATH = "best5.pt"
