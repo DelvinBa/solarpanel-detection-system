@@ -228,33 +228,38 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **When** high-quality aerial images of Dutch houses are sourced  
 **Then** the images should be stored and made available for model testing and inference  
 
+#### Scenario 2: API Usage  
+**Given** an API like PDOK or Google Maps
+**When** calling the API using an address
+**Then** the api should respond with an aerial housing image.
+
 ---
 
 ### **R-04: Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs.**  
 
 #### Scenario 1: House ID Assignment  
-**Given** an image where the ML model detects solar panels  
-**When** the system retrieves the corresponding House ID from the housing dataset  
-**Then** the detection result should be linked to the correct House ID  
+**Given** an image and an adress where the ML model detects solar panels  
+**When** the system retrieves the corresponding House ID 
+**Then** the detection result should be linked to the correct House ID  in the final housing dataset
 
 #### Scenario 2: Missing House ID  
 **Given** an image where the ML model detects solar panels  
 **When** the system is unable to find a matching House ID  
-**Then** the system should log the detection result as "House ID Not Found" and flag it for manual review  
+**Then** the system should log the detection result as "House ID Not Found"
 
 ---
 
 ### **R-05: Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset.**  
 
-#### Scenario 1: Automated Data Retrieval  
-**Given** a new housing dataset update  
-**When** the automated data scraping system runs  
-**Then** the missing housing attributes should be collected and integrated into the dataset  
+#### Scenario 1: Get Postal
+**Given** a city name
+**When** the cityname is passed to the API
+**Then** it should respond with all the addresses of the city
 
-#### Scenario 2: Data Scraping Failure Handling  
-**Given** the automated data scraping system fails to retrieve data from an external source  
-**When** the system encounters an error  
-**Then** it should log the failure and notify the relevant stakeholders  
+#### Scenario 2: Automated Data Retrieval  
+**Given** an address
+**When** the address is passed to the kadaster API and Common datafactory API
+**Then** it should respond with data that can be included in the final dataset for calculating energy labels
 
 ---
 
@@ -270,9 +275,14 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 ### **R-07: Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution.**  
 
 #### Scenario 1: Pipeline Automation  
-**Given** a new batch of images is added for processing  
+**Given** a new batch of labeled images is added for training in bucket A
 **When** the workflow orchestration tool runs the pipeline  
-**Then** all steps (data ingestion, preprocessing, model training, and inference) should execute in sequence automatically  
+**Then** all steps (data ingestion, preprocessing, model training etc.) should execute in sequence automatically  
+
+#### Scenario 2: Pipeline Automation  
+**Given** a new batch of images is added for processing in bucket B
+**When** the workflow orchestration tool runs the pipeline  
+**Then** the inference process should be runned 
 
 ---
 
@@ -284,6 +294,6 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **Then** the image should be resized, normalized, and stored in the preprocessed dataset  
 
 #### Scenario 2: Batch Preprocessing  
-**Given** a dataset of raw images  
+**Given** a batch of raw images  
 **When** preprocessing is triggered  
 **Then** all images in the dataset should be processed and validated for model training  
