@@ -74,7 +74,7 @@ Script to divide satellite images into training and test datasets (`split_trainT
 Jupyter Notebook (`energie_label_final-Enschede.ipynb`) that processes the merged household datasets, cleans and integrates data, and trains a machine learning model to classify energy labels. 
 
 ## 6. Business Goals and Functional Requirements
-The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. these are the goals that we try to achive:
+The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. In [Chapter 8](#chapter-8), the requirements are specified using scenarios. These are the goals that we try to achive:
 
 ### Goal 1: Solar Panel Detection Accuracy  
 **In order to** To efficiently detect energy labels of houses in the Netherlands using Machine Learning in 2025,  
@@ -188,3 +188,112 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 - **Must**:
   - Auto-deploy models **if mAP ≥ baseline threshold**.
   - Support **rollback within 5 minutes** to previous `best.pt`.
+
+
+## 8. Scenarios for Requirements
+<a id="chapter-8"></a>  
+
+### **R-01: Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels.**  
+
+#### Scenario 1: Successful Solar Panel Detection  
+**Given** an aerial or satellite image of a house with solar panels  
+**When** the machine learning model processes the image  
+**Then** the system should return a detection result indicating "Solar Panels Detected" with a confidence score  
+
+#### Scenario 2: No Solar Panel Detected  
+**Given** an aerial or satellite image of a house without solar panels  
+**When** the machine learning model processes the image  
+**Then** the system should return a detection result indicating "No Solar Panels Detected" with a confidence score  
+
+---
+
+### **R-02: Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification.**  
+
+#### Scenario 1: Model Performance Evaluation  
+**Given** multiple trained object detection models  
+**When** the system evaluates them using a standardized test dataset  
+**Then** the system should generate a comparison report with metrics such as accuracy, precision, recall, and IoU  
+
+#### Scenario 2: Selection of the Best Model  
+**Given** performance evaluation results of multiple models  
+**When** the system determines the most accurate and reliable model  
+**Then** the selected model should be marked as the default for deployment  
+
+---
+
+### **R-03: Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data.**  
+
+#### Scenario 1: Image Acquisition  
+**Given** the need to apply the ML model to Dutch housing data  
+**When** high-quality aerial images of Dutch houses are sourced  
+**Then** the images should be stored and made available for model testing and inference  
+
+#### Scenario 2: API Usage  
+**Given** an API like PDOK or Google Maps
+**When** calling the API using an address
+**Then** the api should respond with an aerial housing image.
+
+---
+
+### **R-04: Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs.**  
+
+#### Scenario 1: House ID Assignment  
+**Given** an image and an adress where the ML model detects solar panels  
+**When** the system retrieves the corresponding House ID 
+**Then** the detection result should be linked to the correct House ID  in the final housing dataset
+
+#### Scenario 2: Missing House ID  
+**Given** an image where the ML model detects solar panels  
+**When** the system is unable to find a matching House ID  
+**Then** the system should log the detection result as "House ID Not Found"
+
+---
+
+### **R-05: Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset.**  
+
+#### Scenario 1: Get Postal
+**Given** a city name
+**When** the cityname is passed to the API
+**Then** it should respond with all the addresses of the city
+
+#### Scenario 2: Automated Data Retrieval  
+**Given** an address
+**When** the address is passed to the kadaster API and Common datafactory API
+**Then** it should respond with data that can be included in the final dataset for calculating energy labels
+
+---
+
+### **R-06: Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results.**  
+
+#### Scenario 1: Image and Result Storage  
+**Given** a processed image and its detection result  
+**When** the system completes inference  
+**Then** the image, detection label, and confidence score should be stored in the analytics platform  
+
+---
+
+### **R-07: Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution.**  
+
+#### Scenario 1: Pipeline Automation  
+**Given** a new batch of labeled images is added for training in bucket A
+**When** the workflow orchestration tool runs the pipeline  
+**Then** all steps (data ingestion, preprocessing, model training etc.) should execute in sequence automatically  
+
+#### Scenario 2: Pipeline Automation  
+**Given** a new batch of images is added for processing in bucket B
+**When** the workflow orchestration tool runs the pipeline  
+**Then** the inference process should be runned 
+
+---
+
+### **R-08: Implement automated data preprocessing to ensure images are correctly formatted before model training.**  
+
+#### Scenario 1: Image Preprocessing  
+**Given** a raw aerial or satellite image  
+**When** the preprocessing module runs  
+**Then** the image should be resized, normalized, and stored in the preprocessed dataset  
+
+#### Scenario 2: Batch Preprocessing  
+**Given** a batch of raw images  
+**When** preprocessing is triggered  
+**Then** all images in the dataset should be processed and validated for model training  
