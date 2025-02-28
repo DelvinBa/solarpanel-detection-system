@@ -80,7 +80,7 @@ pre-commit install
 │
 ├── setup.cfg          <- Configuration file for flake8
 │
-└── solar_panel_detection   <- Source code for use in this project.
+└── src   <- Source code for use in this project.
     │
     ├── __init__.py             <- Makes solar_panel_detection a Python module
     │
@@ -98,6 +98,3 @@ pre-commit install
     └── plots.py                <- Code to create visualizations
 ```
 
---------
-
->>>>>>> 76fda14 (initial commit)
