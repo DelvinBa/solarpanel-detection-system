@@ -24,6 +24,15 @@ You will work with:
 
 ---
 
+## Prerequisites
+
+Ensure you have the following installed:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Python 3.8+](https://www.python.org/downloads/)
+- [pip](https://pip.pypa.io/en/stable/)
+
+
 ## ⚙️ Setup Guide
 
 
@@ -45,6 +54,34 @@ Enable Automatic Output Stripping for Notebooks to prevent unnecessary notebook 
 ```
 pre-commit install
 ```
+
+
+### **3️⃣ Start MinIO and Other Services with Docker**  
+Ensure MinIO and any required services are running:  
+```
+docker-compose up -d  
+```
+
+#### **Verify MinIO is Running**  
+Open: [http://localhost:9001](http://localhost:9001)  
+
+Login:  
+- **Username:** `minioadmin`  
+- **Password:** `minioadmin`  
+
+Ensure an **images** bucket exists with uploaded images.  
+
+---
+
+### **4️⃣ Running the YOLOv8 Detection Pipeline**  
+Ensure your virtual environment is activated, then execute the script:  
+
+python process_minio_yolo.py  
+
+This will:  
+1. Fetch images from MinIO.  
+2. Run YOLOv8 object detection.  
+3. Display detected objects with bounding boxes.  
 
 
 ## Project Organization
