@@ -62,15 +62,16 @@ This project aims to leverage artificial intelligence (AI) to detect solar panel
 
 # 9. Analytics Platform Documentation (Architecture Decisions)
 
-## Overview
-In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration and **MinIO** as the storage backend. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing. 
+## Overview  
+In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration, **MinIO** as the storage backend, and **PostgreSQL** as the database. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing.  
 
-### Workflow Structure
-1. **MinIO** acts as an **object storage system** to store raw images and model outputs.
-2. **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.
-3. **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.
+## Workflow Structure  
+- **MinIO** acts as an **object storage system** to store raw images and model outputs.  
+- **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.  
+- **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.  
+- **PostgreSQL** is the database for storing metadata, job statuses, and model performance metrics.  
 
-Each of these components was carefully selected based on **scalability, ease of integration, and performance**. The table below provides a comparison of the chosen tools and their alternatives.
+Each of these components was carefully selected based on **scalability, ease of integration, and performance**. The table below provides a comparison of the chosen tools and their alternatives.  
 
 
 ### Selected Components and Alternatives Comparison
@@ -80,8 +81,7 @@ Each of these components was carefully selected based on **scalability, ease of 
 | **Storage**       | **MinIO**        | - S3-compatible API, making migration and integration easier  <br> - Lightweight and can be self-hosted on-premises or in the cloud  <br> - Scalable and performant for large datasets  <br> - Open-source and cost-effective compared to managed solutions | AWS S3, Azure Blob, GCS | - Managed cloud services can be expensive for large-scale storage  <br> - Vendor lock-in concerns  <br> - Less flexibility in self-hosted environments |
 | **Orchestration** | **Apache Airflow** | - Industry-standard tool for workflow orchestration  <br> - Scalable, supports distributed execution  <br> - Large community and extensive plugin support  <br> - Integrates well with MinIO, Python, and ML pipelines | Prefect, Dagster, Kubeflow | - **Prefect** is easier to use but lacks some enterprise-level capabilities like complex DAGs  <br> - **Dagster** is great for data pipelines but less mature for ML workflows  <br> - **Kubeflow** is powerful but complex to set up and maintain |
 | **Model Training** | **YOLOv8**       | - State-of-the-art real-time object detection  <br> - Pre-trained models available, reducing training time  <br> - Optimized for edge and cloud deployment  <br> - Faster inference compared to alternatives, making it suitable for real-time applications | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve  <br> - **MMDetection** is powerful but requires extensive configuration  <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection |
-
-
+| **Database** | **PostgreSQL** | - Perfect integration with Airflow (Airflow's native metadata DB)  <br> - PostGIS extension for geospatial data (crucial for property location analysis)  <br> - Strong data integrity with ACID compliance  <br> - Open-source with no licensing costs  <br> - JSON support for flexible schema when needed  <br> - Scalable for both logging and analytical queries | SQL Server, MongoDB, TimescaleDB | - **SQL Server** has licensing costs and higher resource requirements  <br> - **MongoDB** has weaker integration with Airflow and less mature spatial capabilities  <br> - **TimescaleDB** is specialized for time-series data which is only one aspect of our needs |
 
 ## Future Considerations
 - **ETL/ELT Pipelines**: In the future, adding **data transformation and preprocessing** may be necessary.
