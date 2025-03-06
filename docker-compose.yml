@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:13
@@ -22,7 +20,10 @@ services:
       - "6379:6379"
 
   airflow-webserver:
-    image: apache/airflow:2.7.2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: custom-airflow:2.7.2-python3.11
     container_name: airflow_webserver
     restart: always
     depends_on:
@@ -31,6 +32,11 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=airflowsecret
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=mybucket
     ports:
       - "8080:8080"
     volumes:
@@ -38,7 +44,10 @@ services:
     command: webserver
 
   airflow-scheduler:
-    image: apache/airflow:2.7.2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: custom-airflow:2.7.2-python3.11
     container_name: airflow_scheduler
     restart: always
     depends_on:
@@ -46,18 +55,26 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=airflowsecret
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=mybucket
     volumes:
       - airflow_data:/opt/airflow/dags
     command: scheduler
 
   airflow-init:
-    image: apache/airflow:2.7.2
-    container_name: airflow_init
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: custom-airflow:2.7.2-python3.11
     depends_on:
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=airflowsecret
     volumes:
       - airflow_data:/opt/airflow
     entrypoint: >
