@@ -1,0 +1,9 @@
+[core]
+    remote = minio
+    autostage = true
+['remote "minio"']
+    url = s3://labeled-house-images
+    endpointurl = http://localhost:9000/
+    access_key_id = minioadmin
+    secret_access_key = minioadmin
+    use_ssl = False
