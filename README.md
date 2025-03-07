@@ -55,8 +55,14 @@ Enable Automatic Output Stripping for Notebooks to prevent unnecessary notebook 
 pre-commit install
 ```
 
+### **3️⃣ Download Images**
 
-### **3️⃣ Start MinIO and Other Services with Docker**  
+1. Download labels from here: https://figshare.com/articles/dataset/Solar_Panel_Object_Labels/22081091
+2. Download images from here: https://resources.maxar.com/product-samples/15-cm-hd-and-30-cm-view-ready-solar-panels-germany
+3. Put the labels for hd images in `data/processed/labels` and the hd images in `data/processed/images` folders
+
+
+### **4️⃣ Start MinIO and Other Services with Docker**  
 Ensure MinIO and any required services are running:  
 ```
 docker-compose up -d  
@@ -69,20 +75,30 @@ Login:
 - **Username:** `minioadmin`  
 - **Password:** `minioadmin`  
 
-Ensure an **images** bucket exists with uploaded images.  
+1. Create a bucket called `labeled-house-images`.
+2. Upload the `processed` folder and all its contents into that bucket.### **3️⃣ Download Images**
+
+1. Download labels from [Figshare](https://figshare.com/articles/dataset/Solar_Panel_Object_Labels/22081091).
+2. Download images from [Maxar](https://resources.maxar.com/product-samples/15-cm-hd-and-30-cm-view-ready-solar-panels-germany).
+3. Move the downloaded files to the following directories:
+   - Place the HD image labels in `data/processed/labels/`
+   - Place the HD images in `data/processed/images/`
 
 ---
 
-### **4️⃣ Running the YOLOv8 Detection Pipeline**  
-Ensure your virtual environment is activated, then execute the script:  
+### **4️⃣ Start MinIO and Other Services with Docker**  
+Ensure MinIO and any required services are running: `docker-compose up -d`
 
-python process_minio_yolo.py  
 
-This will:  
-1. Fetch images from MinIO.  
-2. Run YOLOv8 object detection.  
-3. Display detected objects with bounding boxes.  
+#### **Verify MinIO is Running**  
+1. Open: [http://localhost:9001](http://localhost:9001)  
 
+2. Log in using the following credentials::  
+   - **Username:** `minioadmin`
+   - **Password:** `minioadmin`
+
+3. Create a bucket named `labeled-house-images`.
+4. Upload the entire processed folder and its contents into this bucket.
 
 ## Project Organization
 
