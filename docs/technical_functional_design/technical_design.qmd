@@ -8,10 +8,7 @@ toc: true
 format:
     html: 
         code-fold: true
-    pdf: 
-        geometry: 
-        - top=30mm
-        - left=20mm
+    
 ---
 
 
@@ -114,6 +111,7 @@ In this project, we are building an **object detection pipeline** using **YOLOv8
 ## Workflow Structure  
 - **MinIO** acts as an **object storage system** to store raw images and model outputs.  
 - **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.  
+- **MLflow** is used for experiment **tracking, model versioning**, and logging performance metrics to ensure reproducibility and model management.
 - **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.  
 - **PostgreSQL** is the database for storing metadata, job statuses, and model performance metrics.  
 
