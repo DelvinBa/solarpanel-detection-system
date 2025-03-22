@@ -7,7 +7,7 @@ pages:
   # Functions that should be executed before the build script is run
   before_script:
     - tlmgr option repository http://mirror.ctan.org/systems/texlive/tlnet
-    - tlmgr update --self --verify-repo=none
+    - update-tlmgr-latest.sh --update
     - tlmgr install beamer caption soul koma-script --verify-repo=none
   script:
     - quarto render . --output-dir public
