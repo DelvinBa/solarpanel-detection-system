@@ -173,4 +173,7 @@ cython_debug/
 
 /.quarto/
 _site/
-
+db_data/
+minio_data/
+src/mnistdata/
+logs/
