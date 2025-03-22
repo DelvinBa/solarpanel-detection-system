@@ -6,11 +6,8 @@ pages:
   image: ghcr.io/quarto-dev/quarto-full:latest
   # Functions that should be executed before the build script is run
   before_script:
-    - tlmgr option repository http://mirror.ctan.org/systems/texlive/tlnet
-    # Download the update-tlmgr-latest.sh script since it's not in the image
-    - curl -sSL https://raw.githubusercontent.com/yihui/tinytex/master/tools/update-tlmgr-latest.sh -o /tmp/update-tlmgr-latest.sh
-    - chmod +x /tmp/update-tlmgr-latest.sh
-    - /tmp/update-tlmgr-latest.sh --update
+    - tlmgr option repository http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/tlnet-final
+    - tlmgr update --self --verify-repo=none
     - tlmgr install beamer caption soul koma-script --verify-repo=none
   script:
     - quarto render . --output-dir public

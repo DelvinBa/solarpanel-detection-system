@@ -33,21 +33,21 @@ This project addresses two key challenges:
 1. **Solar Panel Detection**: Developing a machine learning model that can determine whether a given house in an image has solar panels.  
 2. **BAG ID Retrieval**: Linking the detected solar panel data to the correct house using the BAG ID system, a unique identifier for each building in the Netherlands.  
 
-To achieve this, we will **design and implement a complete data and machine learning pipeline**, ensuring the automation of **data ingestion, preprocessing, model training, and deployment**. The pipeline will be designed for seamless integration into existing sustainability assessment systems used by Nijhuis Bouw.  
+To achieve this, we will **design and implement a complete data and machine learning pipeline**, ensuring the automation of **data ingestion/versioning,  data preprocessing, model training, model validation, model deployment and model feedback**. The pipeline will be designed for seamless integration into existing sustainability assessment systems used by Nijhuis Bouw.  
 
 The model will be trained using **satellite images from South Germany**, where solar panel density is high. However, in production, it needs to analyze **aerial images of houses in the Netherlands**, requiring robust generalization across different data sources.  
 
 Additionally, the results should ideally be integrated into the broader **energy labeling pipeline** to support sustainability assessments for housing associations and policymakers.  
 
 ## 3. Stakeholders  
-- **Developer Team for Solar Panel Detection**: Delvin Bacho & Navid Gharapanjeh  
+- **Developer Team for operationalising Solar Panel Detection utilising MLOps principle**: Delvin Bacho & Navid Gharapanjeh  
 - **Project Lead & NOWATT Representative**: Selin Çolakhasanoglu (Saxion University of Applied Science, Data Science Team)  
 - **Client Organization**: Nijhuis Bouw (Sustainability and Housing Solutions) – Contact: Roel Prinsen  
 - **Funding Agency**: Taskforce for Applied Research SIA  
 
 ## 4. Vision  
 **FOR** Nijhuis Bouw <br> \newline  
-**WHO** need an automated way to assess and improve the energy efficiency of buildings <br> \newline  
+**WHO** need an automated and scalable way to assess and improve the energy efficiency of buildings <br> \newline  
 **THE** Solar Panel Detection System <br> \newline  
 **THAT** automatically detects solar panels from aerial and satellite imagery to support energy label predictions <br> \newline  
 **AND THAT** integrates with public datasets (Kadaster) to provide accurate building-specific insights <br> \newline  
@@ -76,19 +76,32 @@ Jupyter Notebook (`energie_label_final-Enschede.ipynb`) that processes the merge
 ## 6. Business Goals and Functional Requirements
 The NOWATT project leverages **computer vision** to automate solar panel detection, links results with **BAG/Housing ID** for energy labels, and develops a full **MLOps pipeline** for efficient deployment. In [Chapter 8](#chapter-8), the requirements are specified using scenarios. These are the goals that we try to achive:
 
-### Goal 1: Solar Panel Detection Accuracy  
+
+### Goal 1: Automation of Solarpanel Detection System
+
+**In order to** continuously improve and rapidly deploy our solar panel detection system to stakeholders,  
+**As** the developer team,  
+**We want** an automated, end-to-end MLOps pipeline that reduces manual overhead, ensures consistent data and model workflows, and accelerates deployment to production.
+
+| ID    | Requirement Description                                                                                                    | MoSCoW |
+|-------|-----------------------------------------------------------------------------------------------------------------------------|--------|
+| R-01  | Select and implement an analytics platform to store images, model outputs, and performance metrics for easy retrieval.     | Must   |
+| R-02  | Configure a workflow orchestration tool that automatically manages data ingestion, preprocessing, and model training runs.  | Must   |
+| R-03  | Automate data preprocessing so images are correctly formatted and validated before model training begins.                   | Must   |
+
+### Goal 2: Solar Panel Detection Accuracy  
 **In order to** To efficiently detect energy labels of houses in the Netherlands using Machine Learning in 2025,  
 **As** the Client Organization,  
 **We want** to automate the detection and integration of solar panel identification into the NOWATT project process using computer vision.  
 
 | ID    | Requirement Description                                                                                     | MoSCoW |
 |-------|------------------------------------------------------------------------------------------------|--------|
-| R-01  | Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels. | Must   |
-| R-02  | Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification. | Must   |
-| R-03  | Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data. | Should |
+| R-04  | Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels. | Must   |
+| R-05  | Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification. | Must   |
+| R-06  | Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data. | Should |
 
 
-### Goal 2: House ID Detection / Connect with Kadaster API
+### Goal 3: House ID Detection / Connect with Kadaster API
 **In order to** link detected solar panel detections with the existing housing data for better energy label predictions,  
 **As** the Project Lead,  
 **I want** to get also the House ID as an output of the pipeline/system using the Kadaster API, ensuring at least 85% successful matches.  
@@ -96,174 +109,103 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 | ID    | Requirement Description | MoSCoW |
 |-------|------------|--------|
-| R-04  | Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs. | Should |
-| R-05  | Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset. | Could |
+| R-07  | Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs. | Should |
+| R-08  | Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset. | Could |
 
-### Goal 3: MLOps Pipeline  
-**In order to** ensure efficient, reproducible, and automated model training and deployment,  
-**As** the developer team,  
-**We want** to develop a **complete MLOps pipeline** that covers **Data Ingestion, Data prepocessing, Model Training, Model Analysis, Model versioning/validation, Model deployment**.
+--- 
 
+### 6.1 Mapping Requirements to Pipeline Phases
 
-| ID    | Requirement Description | MoSCoW |
-|-------|------------|--------|
-| R-06  | Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results. | Must |
-| R-07  | Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution. | Must |
-| R-08  | Implement automated data preprocessing to ensure images are correctly formatted before model training. | Must |
+Below is an overview of the main phases in our envisioned ML pipeline. We currently focus on the phases most relevant to this project (**Data Ingestion/Versioning**, **Data Preprocessing**, **Model Training**, **Model Validation**, **Model Deployment**, and **Model Feedback**). Other phases, such as **Data Validation**, **Model Analysis**, and **Model Versioning**, are out of scope.
+The Requirements defined are now linked to each phase of the ML-Lifecycle.
+In general, we need to say, that we will deal with two types of data. One the inference data, which is publicly available and already labeled. The other, is the inference Data, which is different type of data than the training data. 
 
 
+#### Phase 1: Data Ingestion / Versioning
+
+**Relevant Requirements:**
+- **R-01**  
+  “Select and implement an analytics platform to store images, model outputs, and performance metrics for easy retrieval.”
+- **R-02**  
+  “Configure a workflow orchestration tool that automatically manages data ingestion, preprocessing, and model training runs.”
+- **R-08**  
+  “Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset.”
+
+**Scope & Purpose:**  
+In this phase, we collect data (e.g., satellite or aerial images, addresses, and house IDs), store it in a version-controlled environment, and automate the process to reduce manual overhead. 
+
+
+
+#### Phase 2: Data Validation
+*(Out of Scope currently—no direct requirements yet.)*
+
+
+#### Phase 3: Data Preprocessing
+
+**Relevant Requirement:**
+- **R-03**  
+  “Automate data preprocessing so images are correctly formatted and validated before model training begins.”
+
+**Scope & Purpose:**  
+Once data is ingested, it must be cleaned and prepared for model training. This includes ensuring images have consistent formats, resolutions, and metadata. By automating preprocessing (R-03), we minimize errors and improve the efficiency of subsequent steps.
+
+
+#### Phase 4: Model Training (without tuning)
+
+**Relevant Requirements:**
+- **R-04**  
+  “Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels.”
+- **R-05**  
+  “Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification.”
+- **R-06**  
+  “Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data.”
+
+**Scope & Purpose:**  
+In this phase, we build and refine our computer vision model(s) for solar panel detection. Requirement (R-04) lays out the core objective of accurately detecting solar panels, while (R-05) ensures multiple models are compared for optimal performance. Requirement (R-06) secures the Dutch imagery needed to adapt the model to local housing conditions.
+
+
+#### Phase 5: Model Analysis
+*(Out of Scope currently—no direct requirements yet.)*
+
+
+#### Phase 6: Model Versioning / Validation
+*(Out of Scope currently—no direct requirements yet.)*
+
+
+
+#### Phase 7: Model Deployment
+
+**Note:**  
+While “rapid deployment” is part of our overall **Goal 1** (i.e., automating and accelerating the pipeline), there are no *explicit* requirements that solely address the deployment process. In practice, R-02 (workflow orchestration) supports deployment by automating end-to-end steps, but we have not defined specific “Must” or “Should” requirements for deployment alone.
+
+
+
+#### Phase 8: Model Feedback
+*(Out of Scope currently—no direct requirements yet.)*
+
+--- 
 
 ## 7. Non-Functional Requirements
 
-### 7.1 Performance
+#### QR-1
 
-#### Training Efficiency
-- **Goal**: Ensure efficient training pipeline execution.
-- **Meter**: Completion time (hours) per 50 epochs.
-- **Must**: ≤ 3 hours (GPU-based training).
-- **Plan**: Optimize **batch size and augmentation** strategies for GPU utilization.
-
-#### Inference Speed
-- **Goal**: Achieve real-time inference.
-- **Meter**: Time per image (ms) on GPU.
-- **Must**: ≤ 10ms per image.
-- **Plan**: Implement **batch processing** to support **1000+ images in <10 minutes**.
-
-#### Model Accuracy
-- **Goal**: Maintain high detection accuracy.
-- **Meter**: mAP@50 and mAP@50-95 scores.
-- **Must**:
-  - **mAP@50 ≥ 90%** for high-priority classes.
-  - **mAP@50-95 ≥ 50%** across all categories.
-  - Recall **>85%** for critical classes.
-
-### 7.2 Scalability
-
-#### Inference Scaling
-- **Goal**: Support high request throughput.
-- **Meter**: Requests per second (RPS).
-- **Must**: Scale up to **1000 RPS**.
-- **Plan**: Use **GPU autoscaling** (AWS EKS, EC2 G5, or ECS Fargate).
-
-#### Storage Scalability
-- **Goal**: Efficiently manage large datasets.
-- **Meter**: Total storage capacity (TB).
-- **Must**: Support **>10TB of image data**.
-- **Plan**: Utilize **MinIO with auto-tiering to AWS S3 Glacier**.
-
-
-### 7.3️ Security & Compliance
-
-#### Access Control
-- **Goal**: Implement secure access policies.
-- **Meter**: RBAC enforcement for model access.
-- **Must**: Restrict Airflow DAG execution via IAM roles.
-- **Plan**: Use **AWS IAM-based RBAC**.
-
-#### Compliance
-- **Goal**: Ensure regulatory compliance.
-- **Meter**: GDPR adherence for image data storage.
-- **Must**: Retain model access logs for **180 days**.
-- **Plan**: Implement forensic audit logging.
-
-### 7.4️ Maintainability & Observability
-
-#### Monitoring & Logging
-- **Goal**: Enable real-time tracking of system performance.
-- **Meter**: Logging and monitoring tool coverage.
-- **Must**:
-  - Log **model training metrics** (loss, mAP, IoU) in **MLflow**.
-  - Store system logs in **AWS CloudWatch or ELK Stack**.
-
-#### Alerting & Issue Tracking
-- **Goal**: Proactively detect system issues.
-- **Meter**: Alerting mechanism coverage.
-- **Must**:
-  - Use **AWS SNS/Slack alerts** for mAP drops **≥10%**.
-  - Implement **Prometheus + Grafana** for system monitoring.
-
-#### CI/CD & Model Deployment
-- **Goal**: Automate and streamline deployments.
-- **Meter**: Deployment automation coverage.
-- **Must**:
-  - Auto-deploy models **if mAP ≥ baseline threshold**.
-  - Support **rollback within 5 minutes** to previous `best.pt`.
+**Tag:** Performance  
+**Ambition:** Deliver near–real-time solar panel detection for quick decision-making.  \newline <br>
+**Scale:** Up to 1,000 images per batch without significant slowdowns.  
+**Meter:**  
+- **Inference Time/Image (ms)**  
+- **Training Completion (hrs)**  
+**Goal:**  
+- Inference ≤ 10ms per image on a single GPU.  
+- Training a new model (50 epochs) within 3 hours.  
 
 
 ## 8. Scenarios for Requirements
 <a id="chapter-8"></a>  
 
-### **R-01: Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels.**  
 
-#### Scenario 1: Successful Solar Panel Detection  
-**Given** an aerial or satellite image of a house with solar panels  
-**When** the machine learning model processes the image  
-**Then** the system should return a detection result indicating "Solar Panels Detected" with a confidence score  
 
-#### Scenario 2: No Solar Panel Detected  
-**Given** an aerial or satellite image of a house without solar panels  
-**When** the machine learning model processes the image  
-**Then** the system should return a detection result indicating "No Solar Panels Detected" with a confidence score  
-
----
-
-### **R-02: Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification.**  
-
-#### Scenario 1: Model Performance Evaluation  
-**Given** multiple trained object detection models  
-**When** the system evaluates them using a standardized test dataset  
-**Then** the system should generate a comparison report with metrics such as accuracy, precision, recall, and IoU  
-
-#### Scenario 2: Selection of the Best Model  
-**Given** performance evaluation results of multiple models  
-**When** the system determines the most accurate and reliable model  
-**Then** the selected model should be marked as the default for deployment  
-
----
-
-### **R-03: Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data.**  
-
-#### Scenario 1: Image Acquisition  
-**Given** the need to apply the ML model to Dutch housing data  
-**When** high-quality aerial images of Dutch houses are sourced  
-**Then** the images should be stored and made available for model testing and inference  
-
-#### Scenario 2: API Usage  
-**Given** an API like PDOK or Google Maps
-**When** calling the API using an address
-**Then** the api should respond with an aerial housing image.
-
----
-
-### **R-04: Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs.**  
-
-#### Scenario 1: House ID Assignment  
-**Given** an image and an adress where the ML model detects solar panels  
-**When** the system retrieves the corresponding House ID 
-**Then** the detection result should be linked to the correct House ID  in the final housing dataset
-
-#### Scenario 2: Missing House ID  
-**Given** an image where the ML model detects solar panels  
-**When** the system is unable to find a matching House ID  
-**Then** the system should log the detection result as "House ID Not Found"
-
----
-
-### **R-05: Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset.**  
-
-#### Scenario 1: Get Postal
-**Given** a city name
-**When** the cityname is passed to the API
-**Then** it should respond with all the addresses of the city
-
-#### Scenario 2: Automated Data Retrieval  
-**Given** an address
-**When** the address is passed to the kadaster API and Common datafactory API
-**Then** it should respond with data that can be included in the final dataset for calculating energy labels
-
----
-
-### **R-06: Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results.**  
+### **R-01: Select and implement an appropriate analytics platform to store images, model outputs, and evaluation results.**  
 
 #### Scenario 1: Image and Result Storage  
 **Given** a processed image and its detection result  
@@ -272,7 +214,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 ---
 
-### **R-07: Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution.**  
+### **R-02: Choose and configure a workflow orchestration tool to automate the data and ML pipeline execution.**  
 
 #### Scenario 1: Pipeline Automation  
 **Given** a new batch of labeled images is added for training in bucket A
@@ -286,7 +228,7 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 
 ---
 
-### **R-08: Implement automated data preprocessing to ensure images are correctly formatted before model training.**  
+### **R-03: Implement automated data preprocessing to ensure images are correctly formatted before model training.**  
 
 #### Scenario 1: Image Preprocessing  
 **Given** a raw aerial or satellite image  
@@ -297,3 +239,73 @@ The NOWATT project leverages **computer vision** to automate solar panel detecti
 **Given** a batch of raw images  
 **When** preprocessing is triggered  
 **Then** all images in the dataset should be processed and validated for model training  
+
+### **R-04: Develop a machine learning model that processes aerial or satellite images and accurately detects the presence of solar panels.**  
+
+#### Scenario 1: Successful Solar Panel Detection  
+**Given** an aerial or satellite image of a house with solar panels  
+**When** the machine learning model processes the image  
+**Then** the system should return a detection result indicating "Solar Panels Detected" with a confidence score  
+
+#### Scenario 2: No Solar Panel Detected  
+**Given** an aerial or satellite image of a house without solar panels  
+**When** the machine learning model processes the image  
+**Then** the system should return a detection result indicating "No Solar Panels Detected" with a confidence score  
+
+---
+
+### **R-05: Evaluate and compare the performance of multiple object detection models to determine the most suitable approach for solar panel identification.**  
+
+#### Scenario 1: Model Performance Evaluation  
+**Given** multiple trained object detection models  
+**When** the system evaluates them using a standardized test dataset  
+**Then** the system should generate a comparison report with metrics such as accuracy, precision, recall, and IoU  
+
+#### Scenario 2: Selection of the Best Model  
+**Given** performance evaluation results of multiple models  
+**When** the system determines the most accurate and reliable model  
+**Then** the selected model should be marked as the default for deployment  
+
+---
+
+### **R-06: Acquire high-quality Dutch aerial imagery to ensure the final trained model can be applied effectively to local housing data.**  
+
+#### Scenario 1: Image Acquisition  
+**Given** the need to apply the ML model to Dutch housing data  
+**When** high-quality aerial images of Dutch houses are sourced  
+**Then** the images should be stored and made available for model testing and inference  
+
+#### Scenario 2: API Usage  
+**Given** an API like PDOK or Google Maps
+**When** calling the API using an address
+**Then** the api should respond with an aerial housing image.
+
+---
+
+### **R-07: Establish a method to integrate the ML model’s output with existing housing datasets by linking detection results to specific houses, for example, using House IDs.**  
+
+#### Scenario 1: House ID Assignment  
+**Given** an image and an adress where the ML model detects solar panels  
+**When** the system retrieves the corresponding House ID 
+**Then** the detection result should be linked to the correct House ID  in the final housing dataset
+
+#### Scenario 2: Missing House ID  
+**Given** an image where the ML model detects solar panels  
+**When** the system is unable to find a matching House ID  
+**Then** the system should log the detection result as "House ID Not Found"
+
+---
+
+### **R-08: Develop an automated approach to replace or reduce manual data scraping processes, enabling a more efficient and scalable way to populate the final dataset.**  
+
+#### Scenario 1: Get Postal
+**Given** a city name
+**When** the cityname is passed to the API
+**Then** it should respond with all the addresses of the city
+
+#### Scenario 2: Automated Data Retrieval  
+**Given** an address
+**When** the address is passed to the kadaster API and Common datafactory API
+**Then** it should respond with data that can be included in the final dataset for calculating energy labels
+
+---

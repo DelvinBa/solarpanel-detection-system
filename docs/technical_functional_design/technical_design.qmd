@@ -16,51 +16,97 @@ format:
 
 
 # 1. Introduction 
-This project aims to leverage artificial intelligence (AI) to detect solar panels from satellite images, integrate the results with Kadaster’s housing database. To ensure scalability, reproducibility, and efficiency, an end-to-end MLOps pipeline will be implemented. The following goals are structured to maintain clarity and alignment with project objectives.  
+This document is about the technical part of this solar detection project. What this project is about and what the goals and requirements are, is described extensively in the  [functional design](functional_design.qmd).
+The technical design is documented using the arc42 template and will tailor it for this project if needed. The architectural diagrams should be in c4/mermaid.
+
 
 # 2. Constraints
-- **Technical constraints**: Hardware, software, cloud providers.
-- **Regulatory & Compliance**: GDPR, AI ethics, data security.
-- **Operational constraints**: Budget, team skills, deadlines.
+- **Technical constraints**: 
+  - Hardware, software and cloud providers should be free or open source
+  - Cloud providers: Either Cloud Student Accounts (e.g. Azure or AWS) or Saxions AWS Account
+  - Our own machine is not ideal, since we train on images (limited computing power if we have no computation server)
+- **Operational constraints**: 
+  - Deadline: 20. April 2025
+  - Personell: Group of two software engineers/computer scientists, with limited knowledge in DataScience/ML
+  - We have the Training data given by the project, which is publicly available. However the Inference data, is not available, and needs to be scraped by us. Training Data (houses of south germany) and Inference data (houses of netherlands), will therefore be not of the same format and region.
 
 # 3. System Scope and Context
-- **Scope**: Define what is included/excluded in the project.
-- **Context Diagram**: Illustrate data sources, models, and outputs.
+
+
+This section provides an **overview of the system landscape** by illustrating **who interacts with our system and how it fits into its environment**. It consists of two context diagrams:
+
+1. **Solar Panel Detection System**  
+   - Shows the primary users and external systems that interact with our Solar Panel Detection System.
+
+
+## 3.1 Context Diagrams
+
+### Solar Panel Detection System - Context Diagram  
+![Context Diagram - Solarpanel Detection System](images/c4_context_diagram.svg)
+
+The **Solar Panel Detection System** is responsible for **analyzing house images to detect solar panels**. It includes a lightweight internal data ingestion process (implemented via simple Python scripts) that fetches aerial images of Dutch houses from public services.
+
+The main stakeholders and external systems involved are:
+
+**Users:**
+- **Developers**: Upload training images and manage the retraining process.
+- **Nijhuis Bouw (Client)**: Uploads inference images and checks detection results.
+- **Selin (Product Owner)**: Also uploads inference images and verifies detection results.
+
+**External Systems:**
+- **CommonDataFactory**: External service that receives a **city name** and returns a **list of addresses**.
+- **Bag Viewer Kadaster**: Receives an **address** and returns **X, Y coordinates**.
+- **PDOK Luchtfoto WMS**: Receives **X, Y coordinates** and returns the corresponding **aerial image** of the house.
+- **Data Storage for Results**: This is an existing Excel file from Selin, where detection results are stored alongside other project-related data (e.g., for energy label calculation). A migration to a proper database is being considered.
+
+
+
 
 # 4. Solution Strategy
-- **Data pipeline strategy**: Batch vs. real-time.
-- **ML model strategy**: Pre-trained vs. custom models.
-- **Deployment strategy**: On-premises, cloud, or edge.
-- **Scaling strategy**: Horizontal vs. vertical scaling.
 
-# 5. Building Block View
-- **Components Overview**:
-  - Data ingestion
-  - Data preprocessing
-  - Feature engineering
-  - Model training
-  - Model evaluation
-  - Model deployment
-- **Component Diagram**: Visualize these blocks and their interactions.
+The **main goal** of this project is to build a **fully automated, monolithic Data and ML Pipeline** that detects solar panels in aerial or satellite images and links these detections to Dutch house IDs. We adopt a **simplified machine learning pipeline**—as illustrated below—focusing on the following stages:
 
-# 6. Runtime View
-- **Data flow**: How data moves through the system.
-- **Model serving process**: How predictions are generated and served.
-- **Monitoring & logging**: Performance tracking and debugging.
+1. **Data Ingestion / Versioning**  
+2. **Data Preprocessing**  
+3. **Model Training**  
+4. **Model Deployment**  
+5. **Model Validation**  
+6. **Model Feedback**
 
-# 7. Deployment View
-- **Infrastructure choices**: Cloud services, local servers.
-- **CI/CD pipeline for ML models**.
-- **Containerization strategy**: Docker, Kubernetes.
-- **Versioning & rollback mechanisms**.
+In general we need to distinguish between multiple big processes we will build here. 
 
-# 8. Cross-cutting Concepts
-- **Security & Access Control**.
-- **Data Governance & Lineage**.
-- **MLOps Best Practices**.
-- **Bias & Fairness Considerations**.
+1. Training Pipeline
+This process is mostly about the above image/pipeline.
+2. Dutch houses scraping process
+This is what we called Webscraping System in chapter 3 System Scope and Context. This could be also seen as a part of Data ingestion 
+3. Inference Pipeline
 
-# 9. Analytics Platform Documentation (Architecture Decisions)
+> **Note:** The pipeline diagram is adapted from the *DataOps Specialization (2024-2025), Deployment and Operations* lecture materials by Deepak Tunuguntla and Pieter Zeilstra (Saxion University of Applied Sciences).  
+> For this project, **Data Validation**, **Model Tuning** and **Model Analysis** are **out of scope**.
+
+![ML Pipeline](images/ml-pipeline.png)
+
+Because our resources are limited and the team is small, a **monolithic end-to-end pipeline** is simpler to maintain than multiple microservices. We will still keep each phase (Ingestion, Preprocessing, Training, etc.) **modular** within the monolithic structure, so we can evolve individual steps if needed.
+
+- **Automation & Reproducibility**: We plan to automate pipeline execution using a scheduling or orchestration mechanism (e.g., Apache Airflow).  
+- **Accuracy & Domain Adaptation**: We will compare multiple Machine Learning object detection models (e.g., YOLO, Faster R-CNN). Although model tuning is out of scope, we aim to ensure a robust baseline accuracy given our training data (Germany) differs from inference data (Netherlands).  
+- **House ID Linking**: A subsystem (still part of the monolith) will handle address lookups via Kadaster/PDOK APIs, linking detection results to the specific records in the existing data storage from the Selin, where more information about the same house are stored.
+
+---
+
+## 4.1 Addressing Key Business Goals
+
+| **Business Goal**                                     | **Scenario**                                                                                                                                                                 | **Solution Approach**                                                                                                                                                 |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Goal 1: Automation of Solarpanel Detection System**  | - New aerial/satellite images should trigger the pipeline automatically. <br/> - Minimal manual intervention once data arrives.                                             | - **Monolithic end-to-end pipeline** with automated scheduling/orchestration. <br/> - **Containerized steps** (if applicable) to ensure consistent environments. <br/> - **Version control** for reproducibility. |
+| **Goal 2: Solar Panel Detection Accuracy**             | - Model must reliably detect panels in Dutch aerial imagery. <br/> - Compare different object detection frameworks for baseline accuracy.                                    | - **Evaluate multiple ML models** (e.g., YOLO, Faster R-CNN).                |
+| **Goal 3: House ID Detection / Kadaster Integration**  | - After detecting solar panels, link results to specific addresses in the final data storage                             | <br/> - **Coordinate-based matching** of bounding boxes to house polygons. <br/> - **Automated data retrieval** via public APIs and Webservices.                |
+
+
+
+
+## 4.2 Technology Selection and Rationale
+
 
 ## Overview  
 In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration, **MinIO** as the storage backend, and **PostgreSQL** as the database. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing.  
@@ -83,25 +129,36 @@ Each of these components was carefully selected based on **scalability, ease of 
 | **Model Training** | **YOLOv8**       | - State-of-the-art real-time object detection  <br> - Pre-trained models available, reducing training time  <br> - Optimized for edge and cloud deployment  <br> - Faster inference compared to alternatives, making it suitable for real-time applications | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve  <br> - **MMDetection** is powerful but requires extensive configuration  <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection |
 | **Database** | **PostgreSQL** | - Perfect integration with Airflow (Airflow's native metadata DB)  <br> - PostGIS extension for geospatial data (crucial for property location analysis)  <br> - Strong data integrity with ACID compliance  <br> - Open-source with no licensing costs  <br> - JSON support for flexible schema when needed  <br> - Scalable for both logging and analytical queries | SQL Server, MongoDB, TimescaleDB | - **SQL Server** has licensing costs and higher resource requirements  <br> - **MongoDB** has weaker integration with Airflow and less mature spatial capabilities  <br> - **TimescaleDB** is specialized for time-series data which is only one aspect of our needs |
 
-## Future Considerations
-- **ETL/ELT Pipelines**: In the future, adding **data transformation and preprocessing** may be necessary.
-- **Scalability Improvements**: If workload increases, consider **switching to cloud-based storage (AWS S3, GCS)**.
-- **Automated Model Retraining**: Using **Airflow triggers or Kubeflow** for continuous learning.
 
+
+
+
+# 5. Building Block View
+
+
+# 6. Runtime View
+- **Data flow**: How data moves through the system.
+- **Model serving process**: How predictions are generated and served.
+- **Monitoring & logging**: Performance tracking and debugging.
+
+# 7. Deployment View
+- **Infrastructure choices**: Cloud services, local servers.
+- **CI/CD pipeline for ML models**.
+- **Containerization strategy**: Docker, Kubernetes.
+- **Versioning & rollback mechanisms**.
+
+# 8. Cross-cutting Concepts
+
+# 9. Architectural Decisions
 
 # 10. Quality Requirements
-- **Model Performance Metrics**.
-- **Scalability & Maintainability**.
-- **Explainability & Interpretability**.
-- **Fault tolerance & disaster recovery**.
+
 
 # 11. Risks and Technical Debt
 - **Potential biases in data and models**.
 - **Computational cost and resource constraints**.
 - **Integration challenges with existing systems**.
 
-# 12. Glossary
-- Define key terms related to ML, AI, and MLOps.
 
 ---
 
