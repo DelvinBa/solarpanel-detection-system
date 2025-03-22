@@ -7,7 +7,10 @@ pages:
   # Functions that should be executed before the build script is run
   before_script:
     - tlmgr option repository http://mirror.ctan.org/systems/texlive/tlnet
-    - update-tlmgr-latest.sh --update
+    # Download the update-tlmgr-latest.sh script since it's not in the image
+    - curl -sSL https://raw.githubusercontent.com/yihui/tinytex/master/tools/update-tlmgr-latest.sh -o /tmp/update-tlmgr-latest.sh
+    - chmod +x /tmp/update-tlmgr-latest.sh
+    - /tmp/update-tlmgr-latest.sh --update
     - tlmgr install beamer caption soul koma-script --verify-repo=none
   script:
     - quarto render . --output-dir public
@@ -15,4 +18,3 @@ pages:
     paths:
       # The folder that contains the files to be exposed at the Page URL
       - public
-
