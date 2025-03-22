@@ -1,0 +1,40 @@
+C4Context
+title Context Diagram for Solar Panel Detection System
+
+Enterprise_Boundary(b1, "Solar Panel Detection System Boundary") {
+
+    
+    Person(dev, "Developers", "Add training images and manage retraining.")
+    System(spds, "Solar Panel Detection System", "Detects solar panels in house images using machine learning. Includes data ingestion via scraping scripts.")
+    Person(client, "Nijhuis Bouw", "Uploads inference images and checks detection results.")
+    Person(po, "Selin (Product Owner)", "Uploads inference images and checks detection results.")
+    System_Ext(data_storage, "Data Storage for Results", "Stores detection results and other project-related data (currently an Excel file).")
+
+}
+
+System_Ext(commondata, "CommonDataFactory", "Provides list of addresses for a given city name.")
+System_Ext(kadaster, "Bag Viewer Kadaster", "Provides X, Y location based on address.")
+System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns house image based on X, Y location.")
+
+Rel(dev, spds, "Adds training images & retrains models")
+Rel(client, spds, "Uploads images & reviews results")
+Rel(po, spds, "Uploads images & reviews results")
+
+
+Rel(spds, commondata, "Sends city name, receives address list")
+Rel(spds, kadaster, "Sends address, receives X, Y location")
+Rel(spds, pdok, "Sends X, Y location, receives house image")
+
+Rel(spds, data_storage, "Writes detection results")
+
+
+UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+
+UpdateRelStyle(dev, spds, $textColor="green", $lineColor="green", $offsetY="20", $offsetX="-100")
+UpdateRelStyle(client, spds, $textColor="blue", $lineColor="blue", $offsetY="80", $offsetX="-70")
+UpdateRelStyle(po, spds, $textColor="purple", $lineColor="purple", $offsetY="0", $offsetX="0")
+
+UpdateRelStyle(spds, commondata, $textColor="blue", $lineColor="blue", $offsetX="-300", $offsetY="-50")
+UpdateRelStyle(spds, kadaster, $textColor="green", $lineColor="green", $offsetX="-50", $offsetY="-50")
+UpdateRelStyle(spds, pdok, $textColor="purple", $lineColor="purple", $offsetX="30", $offsetY="-50")
+UpdateRelStyle(spds, data_storage, $textColor="red", $lineColor="red", $offsetY="-20", $offsetX="30")
