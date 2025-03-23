@@ -1,0 +1,44 @@
+C4Deployment
+title Deployment Diagram for Solar Panel Detection System (Azure)
+
+%% The top-level node represents our Azure environment
+Deployment_Node(azure, "Microsoft Azure", "Cloud Environment") {
+    
+    %% Inside Azure, we have a Kubernetes cluster running all containers
+    Deployment_Node(aks, "Azure Kubernetes Service (AKS)", "Managed Kubernetes") {
+        
+        Container(airflow, "Airflow", "Docker Container (Python)", "Orchestrates and schedules pipeline tasks.")
+        Container(pipeline, "Solardetection Service", "Docker Container (Python)", "Webscraping, model training, and batch inference.")
+        Container(fastapi, "Solardetection API", "Docker Container (Python/FastAPI)", "Serves real-time detection requests.")
+        Container(mlflow, "MLflow", "Docker Container (Python)", "Tracks ML experiments, metrics, and artifacts.")
+        ContainerDb(postgres, "PostgreSQL", "Docker Container", "Stores MLflow data and detection results.")
+        ContainerDb(minio, "MinIO", "Docker Container", "S3-compatible object storage for images and model artifacts.")
+    }
+}
+
+%% Relationships (containers in the same cluster communicate via internal networking)
+Rel(airflow, pipeline, "Schedules scraping, training, batch inference tasks")
+Rel(pipeline, minio, "Stores/Retrieves images & models", "S3/HTTP")
+Rel(pipeline, mlflow, "Logs ML metrics and artifacts", "HTTP")
+Rel(pipeline, postgres, "Stores detection outputs", "SQL")
+Rel(fastapi, pipeline, "Makes API calls for inference/training logic", "HTTP")
+Rel(mlflow, minio, "Stores ML artifacts", "S3/HTTP")
+Rel(mlflow, postgres, "Stores experiment metadata", "SQL")
+
+%% Example styling offsets with colors
+%% "The arrows from the same container to another should have the same color."
+
+%% Airflow -> Pipeline
+UpdateRelStyle(airflow, pipeline, $lineColor="#3b82f6", $textColor="#3b82f6", $offsetX="-110", $offsetY="-110")
+
+%% Pipeline -> MinIO, MLflow, PostgreSQL all share the same style
+UpdateRelStyle(pipeline, minio, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="0", $offsetY="-20")
+UpdateRelStyle(pipeline, mlflow, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-140", $offsetY="0")
+UpdateRelStyle(pipeline, postgres, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-50", $offsetY="0")
+
+%% FastAPI -> Pipeline
+UpdateRelStyle(fastapi, pipeline, $lineColor="#15803d", $textColor="#15803d", $offsetX="-100", $offsetY="-110")
+
+%% MLflow -> MinIO, PostgreSQL both share the same style
+UpdateRelStyle(mlflow, minio, $lineColor="#f97316", $textColor="#f97316", $offsetX="110", $offsetY="60")
+UpdateRelStyle(mlflow, postgres, $lineColor="#f97316", $textColor="#f97316", $offsetX="-80", $offsetY="50")
