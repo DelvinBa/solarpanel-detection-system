@@ -1,4 +1,4 @@
-apache-airflow==2.7.2
+apache-airflow==2.7.3
 minio==7.2.3
 opencv-python-headless==4.8.1.78
 ultralytics==8.1.32

@@ -1,5 +1,5 @@
 # Use the official Airflow image with Python 3.11
-FROM apache/airflow:2.7.2-python3.11
+FROM apache/airflow:2.7.3-python3.11
 
 # Switch to root user to install system dependencies
 USER root
