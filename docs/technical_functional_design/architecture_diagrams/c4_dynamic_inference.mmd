@@ -1,0 +1,34 @@
+C4Dynamic
+title Dynamic Diagram for Inference Pipeline
+
+%% Participants
+Person(user, "Nijhuis", "Manually uploads inference data")
+
+System_Boundary(s, "Machine Learning System"){
+    ContainerDb(minio, "MinIO", "Object Store (S3-compatible)", "Holds inference images and possibly model artifacts")
+    Container_Boundary(airflow, "Airflow") {
+        Component(inferenceDag, "Inference DAG", "Python/Airflow DAG", "Schedules and orchestrates the inference tasks daily")
+    }
+    Container_Boundary(pipeline, "Solardetection Service"){
+        Component(inference, "Inference Pipeline", "Python", "Executes solar panel detection (YOLO model)")
+        Component(training, "Training Pipeline", "Python", "Trains/updates the detection model using collected images.")
+        Component(webscraping, "Webscraping Process", "Python", "Part of the Solardetection Service container.")
+
+    }
+    ContainerDb(postgres, "PostgreSQL", "Relational DB", "Stores inference results")
+
+}
+
+
+%% Relationships (steps in the process)
+Rel(user, minio, "Manually uploads new inference images (inference bucket)", "S3/HTTP")
+Rel(inferenceDag, minio, "Checks daily for new images", "S3/HTTP")
+Rel(inferenceDag, inference , "Triggers solar panel detection task if new data", "Internal call")
+Rel(inference , minio, "Loads YOLO model / images", "S3/HTTP")
+Rel(inference , postgres, "Stores detection results", "SQL")
+
+UpdateRelStyle(user, minio, $textColor="#ef4444", $lineColor="#ef4444", $offsetX="0", $offsetY="-40")
+UpdateRelStyle(inferenceDag, minio, $textColor="#3b82f6", $lineColor="#3b82f6", $offsetX="-190", $offsetY="-50")
+UpdateRelStyle(inferenceDag, inference , $textColor="#3b82f6", $lineColor="#3b82f6", $offsetX="-100", $offsetY="50")
+UpdateRelStyle(inference , minio, $textColor="#a855f7", $lineColor="#a855f7", $offsetX="-100", $offsetY="-40")
+UpdateRelStyle(inference , postgres, $textColor="#a855f7", $lineColor="#a855f7", $offsetX="-40", $offsetY="-60")
