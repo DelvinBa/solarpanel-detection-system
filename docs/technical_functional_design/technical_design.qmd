@@ -8,7 +8,7 @@ toc: true
 format:
     html: 
         code-fold: true
-    pdf: 
+    pdf:
         geometry: 
         - top=30mm
         - left=20mm
@@ -17,7 +17,7 @@ format:
 
 # 1. Introduction 
 This document is about the technical part of this solar detection project. What this project is about and what the goals and requirements are, is described extensively in the  [functional design](functional_design.qmd).
-The technical design is documented using the arc42 template and will tailor it for this project if needed. The architectural diagrams should be in c4/mermaid.
+The technical design is documented using the arc42 template and will tailor it for this project if needed. The architectural diagrams should be in c4/mermaid. If you are currently reading this on pdf, you can switch to our [hosted web-version](https://02-7e9b18.gitlab.io/docs/technical_functional_design/technical_design.html) for better readibility. 
 
 
 # 2. Constraints
@@ -131,9 +131,68 @@ Each of these components was carefully selected based on **scalability, ease of 
 
 
 
-
-
 # 5. Building Block View
+
+This section outlines the overall structure of the Solar Panel Detection System, showing the main containers and their interactions. The external storage for results can optionally be integrated into the PostgreSQL database if desired.
+
+## 5.1 Container Diagram
+
+![Container Diagram - Solarpanel Detection System](images/c4_container_diagram.svg)
+
+The diagram above shows the internal structure of the Solar Panel Detection System and how it interacts with external systems and users:
+
+- **Airflow** orchestrates the entire pipeline by scheduling scraping, training, and inference tasks.
+- **Solardetection Service** performs data collection (addresses, imagery), model training, and batch inference. It acts as the core logic of the system.
+- **Solardetection API (FastAPI)** provides real-time detection by accepting uploaded images and returning predictions. It loads the latest trained model artifacts (from MinIO) and may reuse inference logic from the pipeline.
+- **MLflow** is used by the pipeline to log experiments, including parameters, metrics, and models. It stores metadata in **PostgreSQL**.
+- **PostgreSQL** serves as a central relational database for both MLflow metadata and detection results. It is written to by both the pipeline and MLflow.
+- **MinIO** serves as an object storage system. The pipeline stores input images and trained model artifacts here. FastAPI retrieves model artifacts from MinIO for real-time predictions.
+
+### External Systems
+
+- **CommonDataFactory** provides addresses for a given city.
+- **Bag Viewer Kadaster** resolves addresses to geographic coordinates.
+- **PDOK** returns aerial images for given coordinates.
+- **Data Storage for Results (CSV)** is an external file where final batch detection results are exported. It contains additional house-level energy data and may be merged into the PostgreSQL database in the future.
+- **Nijhuis Bouw** is the external user who uploads house images and retrieves detection results via the API.
+
+
+
+
+## 5.2 Component Diagrams
+
+In this section we will look more deeply into the solarpanel detection service container, the mlflow, airflow. There other ones are not important to look into. 
+
+
+### 5.2.1 Solarpanel detection service Container
+
+Below you can see the component diagram of the solarpanel detection container. We removed all the text for the relations, because it would lead to too an unclear overview.
+
+In general we have three components, which can be seen as three pipelines or processes. 
+1. Training Pipeline
+
+2. Inference Pipeline
+3. Webscraping Process
+
+
+
+![Component Diagram - Solarpanel Detection Container](images/c4_component_solardetection.svg)
+
+
+### 5.2.2 MlFlow Container
+
+
+### 5.2.3 Airflow Container
+
+The Airflow website provides a detailed component diagram of Airflow: [https://airflow.apache.org/docs/apache-airflow/2.5.3/core-concepts/overview.html](https://airflow.apache.org/docs/apache-airflow/2.5.3/core-concepts/overview.html).  
+In our project, **Airflow** schedules tasks (defined in **DAGs**) to run the **Python scripts** that implement our solar panel detection logic. Specifically:
+
+1. **DAG Files** (Directed Acyclic Graph files) define **tasks** and **dependencies**, telling Airflow *what* to run and *when*.  
+2. **Workers** (spawned by the Executor) then **execute** these tasks. When a task is triggered, the Worker loads and runs our Python code, which in turn calls out to the Solar Panel Detection Service.
+
+In other words, the DAG files serve as the **Airflow “recipe”** for orchestrating our solar panel detection scripts; the scripts themselves *live in our codebase* (deployed to the Airflow environment) and are *executed* on Airflow Workers.
+![Component Diagram - Airflow Container](images/component_airflow.png)
+
 
 
 # 6. Runtime View
@@ -151,13 +210,12 @@ Each of these components was carefully selected based on **scalability, ease of 
 
 # 9. Architectural Decisions
 
-# 10. Quality Requirements
-
-
 # 11. Risks and Technical Debt
-- **Potential biases in data and models**.
-- **Computational cost and resource constraints**.
-- **Integration challenges with existing systems**.
+Risks:
+- Training data is different format/and location than inference data => model might perform bad
+
+technical debts:
+- To reach the goal to have an automated process for webscraping inference data(dutch housing images), it is hard in the last step, to get the bounding box of exactly one house! Unclear what offset for the boundingbox to use for houses in different size​. Maybe calculated by size of house?
 
 
 ---
