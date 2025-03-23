@@ -1,0 +1,54 @@
+%% C4 Component Diagram
+C4Component
+title Component Diagram for Solardetection Service
+
+%% External systems/containers referenced by the Solardetection Service
+System_Ext(commondata, "CommonDataFactory", "Provides addresses for a given city.")
+System_Ext(kadaster, "Bag Viewer Kadaster", "Provides X,Y coordinates for an address.")
+System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns aerial images for given coordinates.")
+Container(mlflow, "MLflow", "Experiment Tracking")
+ContainerDb(minio, "MinIO", "Object Storage", "Stores images and model files.")
+ContainerDb(postgres, "PostgreSQL", "Relational DB", "Holds detection results and MLflow metadata.")
+Container(fastapi, "Solardetection API", "Endpoints for training / inference")
+Container(airflow, "Airflow", "Orchestrates pipelines")
+
+%% The Solardetection Service container boundary
+Container_Boundary(sds, "Solardetection Service") {
+    Component(webscraping, "Webscraping Pipeline", "Python", "Retrieves address/coordinate data and aerial images.")
+    Component(training, "Training Pipeline", "Python", "Trains/updates the detection model using collected images.")
+    Component(inference, "Inference Pipeline", "Python", "Performs solar panel detection on new images.")
+}
+
+%% Relationships between components and external systems
+Rel(webscraping, commondata, "", "")
+Rel(webscraping, kadaster, "", "")
+Rel(webscraping, pdok, "", "")
+Rel(webscraping, minio, "", "")
+
+Rel(training, minio, "", "")
+Rel(training, mlflow, "", "")
+
+Rel(inference, minio, "", "")
+Rel(inference, postgres, "", "")
+
+Rel(airflow, webscraping, "")
+Rel(fastapi, training, "", "")
+Rel(fastapi, inference, "", "")
+Rel(fastapi, webscraping, "", "")
+%% Coloring each relationship uniquely
+
+UpdateRelStyle(webscraping, commondata, $lineColor="red", $textColor="red")
+UpdateRelStyle(webscraping, kadaster, $lineColor="red", $textColor="blue")
+UpdateRelStyle(webscraping, pdok, $lineColor="red", $textColor="green")
+UpdateRelStyle(webscraping, minio, $lineColor="red", $textColor="orange")
+
+UpdateRelStyle(training, minio, $lineColor="purple", $textColor="purple")
+UpdateRelStyle(training, mlflow, $lineColor="purple", $textColor="teal")
+
+UpdateRelStyle(inference, minio, $lineColor="brown", $textColor="brown")
+UpdateRelStyle(inference, postgres, $lineColor="brown", $textColor="magenta")
+
+UpdateRelStyle(airflow, webscraping, $lineColor="cyan", $textColor="cyan")
+UpdateRelStyle(fastapi, training, $lineColor="lime", $textColor="lime")
+UpdateRelStyle(fastapi, inference, $lineColor="lime", $textColor="pink")
+UpdateRelStyle(fastapi, webscraping, $lineColor="lime", $textColor="pink")

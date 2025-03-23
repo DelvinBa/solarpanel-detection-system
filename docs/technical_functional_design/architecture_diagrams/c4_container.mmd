@@ -1,0 +1,57 @@
+C4Container
+title Container Diagram for Solar Panel Detection System
+
+%% External systems
+System_Ext(commondata, "CommonDataFactory", "Provides a list of addresses for a given city.")
+System_Ext(kadaster, "Bag Viewer Kadaster", "Provides X,Y coordinates when given an address.")
+Person(nijhuis, "Nijhuis Bouw", "Uploads images, retrieves solar panel detections.")
+System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns a house image when given X,Y coordinates.")
+SystemDb_Ext(datastore, "Data Storage for Results", "External storage (CSV).")
+
+%% External person
+
+%% System boundary for Solar Panel Detection
+Container_Boundary(spds, "Solar Panel Detection System") {
+    
+    Container(airflow, "Airflow", "Python", "Orchestrates and schedules pipeline tasks.")
+    Container(pipeline, "Solardetection Service", "Python", "Webscraping, model training, and batch inference.")
+    Container(fastapi, "Solardetection API", "Python / FastAPI", "Serves real-time detection requests.")
+    Container(mlflow, "MLflow", "Python", "Tracks ML experiments, metrics, and artifacts.")
+    ContainerDb(postgres, "PostgreSQL", "Relational DB", "Stores ML-Flow data and detection results.")
+    ContainerDb(minio, "MinIO", "Object Storage", "Storage for images and model artifacts.")
+}
+
+%% Relationships inside the boundary
+Rel(airflow, pipeline, "Schedules scraping, training, batch inference tasks")
+Rel(pipeline, minio, "Stores and retrieves images/models", "S3/HTTP")
+Rel(pipeline, mlflow, "Logs ML metrics and artifacts", "HTTP")
+Rel(pipeline, postgres, "Stores detection outputs", "SQL")
+Rel(pipeline, datastore, "Exports final detection results (batch)", "CSV/Excel")
+Rel(fastapi, pipeline, "Makes API calls to", "HTTP")
+Rel(mlflow, postgres, "Stores experiment metadata", "SQL")
+Rel(mlflow, minio, "Stores artifacts (e.g. models)", "S3/HTTP")
+
+%% External interactions
+Rel(pipeline, commondata, "Requests city, retrieves addresses", "REST")
+Rel(pipeline, kadaster, "Requests address, retrieves coordinates", "REST")
+Rel(pipeline, pdok, "Requests coords, retrieves house images", "WebService (OGC)")
+Rel(nijhuis, fastapi, "Uploads images, gets real-time detections", "REST")
+
+
+%% Optional: Color the lines
+UpdateRelStyle(airflow, pipeline, $lineColor="cyan", $textColor="cyan", $offsetX="-170", $offsetY="-100")
+UpdateRelStyle(pipeline, minio, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="20", $offsetY="0")
+UpdateRelStyle(pipeline, mlflow, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-130", $offsetY="0")
+UpdateRelStyle(pipeline, postgres, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-130", $offsetY="0")
+UpdateRelStyle(fastapi, pipeline, $lineColor="#15803d", $textColor="#15803d", $offsetX="-40", $offsetY="-110")
+UpdateRelStyle(mlflow, minio, $lineColor="#f97316", $textColor="#f97316", $offsetX="100", $offsetY="60")
+UpdateRelStyle(mlflow, postgres, $lineColor="#f97316", $textColor="#f97316", $offsetX="-60", $offsetY="45")
+
+
+
+UpdateRelStyle(pipeline, datastore, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="10", $offsetY="-50")
+UpdateRelStyle(pipeline, commondata, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-150", $offsetY="-150")
+UpdateRelStyle(pipeline, kadaster, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-100", $offsetY="-150")
+UpdateRelStyle(pipeline, pdok, $lineColor="#a855f7", $textColor="#a855f7", $offsetX="-150", $offsetY="-50")
+UpdateRelStyle(nijhuis, fastapi, $lineColor="#ef4444", $textColor="#ef4444")
+

@@ -1,74 +1,120 @@
 services:
-  postgres:
-    image: postgres:13
-    container_name: airflow_postgres
+  db:
     restart: always
+    image: postgres
+    container_name: mlflow_db
+    expose:
+      - 5432
+    networks:
+      - backend
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=mlflow
+      - POSTGRES_DB=mlflow
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
+      - ./db_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mlflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  s3:
+    restart: always
+    image: minio/minio
+    container_name: mlflow_minio
+    volumes:
+      - ./minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - frontend
+      - backend
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server --console-address ":9001" /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    restart: always
+  tracking_server:
+    restart: always
+    build: ./mlflow
+    image: mlflow_server
+    container_name: mlflow_server
+    depends_on:
+      - db
+      - s3
+    ports:
+      - 5000
+    networks:
+      - frontend
+      - backend
+    environment:
+      - AWS_ACCESS_KEY_ID=1QjlHwW6DvESYnVt3txn
+      - AWS_SECRET_ACCESS_KEY=BwRwdxTsCVENaBY0uQwxFpXnmJoQJbYSUZoRPARD
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+      - MLFLOW_S3_IGNORE_TLS=true
+      - PG_USER=mlflow
+      - PG_PASSWORD=mlflow
+      - PG_DATABASE=mlflow
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://mlflow:mlflow@db:5432/mlflow
+      --host 0.0.0.0
+      --serve-artifacts
+      --artifacts-destination s3://mlflow
   redis:
     image: redis:latest
     container_name: airflow_redis
     restart: always
     ports:
       - "6379:6379"
-
   airflow-webserver:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: custom-airflow:2.7.2-python3.11
-    container_name: airflow_webserver
-    restart: always
+    image: apache/airflow:2.7.3
     depends_on:
+      - db
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__WEBSERVER__SECRET_KEY=airflowsecret
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - MINIO_BUCKET=mybucket
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__RBAC=True
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
     ports:
       - "8080:8080"
-    volumes:
-      - airflow_data:/opt/airflow/dags
-    command: webserver
+    command: >
+      bash -c "airflow db init && 
+      pip install minio && pip install opencv-python && pip install ultralytics &&
+      airflow db upgrade &&
+      airflow connections create-default-connections && 
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com && 
+      airflow scheduler & airflow webserver"
 
   airflow-scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: custom-airflow:2.7.2-python3.11
-    container_name: airflow_scheduler
-    restart: always
+    image: apache/airflow:2.7.3
     depends_on:
+      - db
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__WEBSERVER__SECRET_KEY=airflowsecret
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - MINIO_BUCKET=mybucket
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
     volumes:
-      - airflow_data:/opt/airflow/dags
-    command: scheduler
-
+      - ./airflow/dags:/opt/airflow/dags
+    command: bash -c "airflow db init && pip install minio && airflow scheduler && pip install opencv-python && pip install ultralytics"
   airflow-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: custom-airflow:2.7.2-python3.11
+    image: apache/airflow:2.7.3
     depends_on:
       - postgres
     environment:
@@ -83,47 +129,14 @@ services:
       airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin;
       "
 
-  minio:
-    image: minio/minio
-    container_name: minio
-    restart: always
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server --console-address ":9001" /data
-
-  minio-client:
-    image: minio/mc
-    container_name: minio-client
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      mc alias set local http://minio:9000 minioadmin minioadmin;
-      mc mb local/mybucket;
-      mc policy set public local/mybucket;
-      exit 0;
-      "
-
-  python-app:
-    build: .
-    container_name: python-app
-    depends_on:
-      - minio
-      - airflow-webserver
-    environment:
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      AIRFLOW_URL: http://airflow-webserver:8080
-    volumes:
-      - .:/app
-    command: ["python", "app.py"]
-
 volumes:
-  postgres_data:
+  db_data:
+  minio_data:
   airflow_data:
+  postgres-db-volume:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

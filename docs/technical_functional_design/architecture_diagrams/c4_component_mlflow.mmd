@@ -1,0 +1,22 @@
+C4Component
+title Component diagram for MLFlow System
+
+Container_Boundary(mlflow, "MLFlow") {
+  Component(tracking_server, "Tracking Server", "Server to track experiments")
+  Component(ui, "MLFlow UI", "Web interface for monitoring ")
+}
+
+
+Container(pipeline, "Solardetection Service", "", "")
+ContainerDb(postgres, "PostgreSQL", "", "")
+ContainerDb(minio, "MinIO", "", "")
+
+Rel(tracking_server, minio, "Stores artifacts in")
+Rel(tracking_server, postgres, "Stores metadata in")
+Rel(pipeline, tracking_server, "Logs experiments to")
+Rel(ui, tracking_server, "Monitors")
+
+UpdateRelStyle(ui, tracking_server, $textColor="black", $lineColor="gray", $offsetX="-10", $offsetY="-20")
+UpdateRelStyle(pipeline, tracking_server, $textColor="blue", $lineColor="blue", $offsetX="-10", $offsetY="-40")
+UpdateRelStyle(tracking_server, postgres, $textColor="green", $lineColor="green", $offsetX="30", $offsetY="-40")
+UpdateRelStyle(tracking_server, minio, $textColor="orange", $lineColor="orange", $offsetX="120", $offsetY="-40")
