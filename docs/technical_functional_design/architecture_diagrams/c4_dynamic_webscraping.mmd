@@ -1,0 +1,36 @@
+C4Dynamic
+title Dynamic diagram for Solardetection Service - Webscraping Process
+
+System_Ext(commondata, "CommonDataFactory API", "Returns a list of addresses for a given city.")
+System_Ext(kadaster, "Bag Viewer Kadaster API", "Provides X,Y coordinates for a given address.")
+System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns aerial images (WMS).")
+Person(nijhuis, "Nijhuis Bouw", "External user uploading city name and requesting data.")
+
+System_Boundary(system, "Solarpanel Detection System"){
+    %% The Solardetection Service container boundary
+    Container(fastapi, "Solardetection API", "Python/FastAPI", "Handles incoming requests for webscraping.")
+    
+    ContainerDb(minio, "MinIO", "Object Storage", "Storage for images and model artifacts.")
+    
+    Container_Boundary(sds, "Solardetection Service") {
+        Component(training, "Training Pipeline", "Python", "Trains/updates the detection model using collected images.")
+        Component(webscraping, "Webscraping Process", "Python", "Part of the Solardetection Service container.")
+        Component(inference, "Inference Pipeline", "Python", "Performs solar panel detection on new images.")
+    }
+}
+
+%% Sequence of interactions
+Rel(nijhuis, fastapi, "1. Submits City Name", "HTTP/JSON")
+Rel(fastapi, webscraping, "2. Invokes Webscraping with City Name", "Internal call")
+Rel(webscraping, commondata, "3. Gets all addresses for City", "REST")
+Rel(webscraping, kadaster, "4. For each address, obtains X,Y and House ID", "REST")
+Rel(webscraping, pdok, "5. For each address, retrieves aerial images", "WebService(OGC)")
+Rel(webscraping, minio, "6. Stores retrieved images", "S3-compatible API")
+
+%% Styling for clarity
+UpdateRelStyle(nijhuis, fastapi, $textColor="red", $lineColor="red", $offsetX="0", $offsetY="0")
+UpdateRelStyle(fastapi, webscraping, $textColor="green", $lineColor="green", $offsetX="-100", $offsetY="-50")
+UpdateRelStyle(webscraping, commondata, $textColor="blue", $lineColor="blue", $offsetY="-350", $offsetX="-200")
+UpdateRelStyle(webscraping, kadaster, $textColor="purple", $lineColor="purple", $offsetY="-350", $offsetX="-180")
+UpdateRelStyle(webscraping, pdok, $textColor="orange", $lineColor="orange", $offsetY="-350", $offsetX="80")
+UpdateRelStyle(webscraping, minio, $textColor="brown", $lineColor="brown", $offsetX="150", $offsetY="-80")

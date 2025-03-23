@@ -8,13 +8,16 @@ toc: true
 format:
     html: 
         code-fold: true
-    
+    pdf:
+        geometry: 
+        - top=30mm
+        - left=20mm
 ---
 
 
 # 1. Introduction 
 This document is about the technical part of this solar detection project. What this project is about and what the goals and requirements are, is described extensively in the  [functional design](functional_design.qmd).
-The technical design is documented using the arc42 template and will tailor it for this project if needed. The architectural diagrams should be in c4/mermaid.
+The technical design is documented using the arc42 template and will tailor it for this project if needed. The architectural diagrams should be in c4/mermaid. If you are currently reading this on pdf, you can switch to our [hosted web-version](https://02-7e9b18.gitlab.io/docs/technical_functional_design/technical_design.html) for better readibility. 
 
 
 # 2. Constraints
@@ -29,39 +32,32 @@ The technical design is documented using the arc42 template and will tailor it f
 
 # 3. System Scope and Context
 
-
-This section provides an **overview of the system landscape** by illustrating **who interacts with our system and how it fits into its environment**. It consists of two context diagrams:
-
-1. **Solar Panel Detection System**  
-   - Shows the primary users and external systems that interact with our Solar Panel Detection System.
-
+This section provides an **overview of the system landscape**, showing **who interacts with our system** and **how it fits into the environment**. It includes two high-level context diagrams, with a primary focus on the **Solar Panel Detection System**.
 
 ## 3.1 Context Diagrams
 
-### Solar Panel Detection System - Context Diagram  
+### Solar Panel Detection System - Context Diagram
+
 ![Context Diagram - Solarpanel Detection System](images/c4_context_diagram.svg)
 
-The **Solar Panel Detection System** is responsible for **analyzing house images to detect solar panels**. It includes a lightweight internal data ingestion process (implemented via simple Python scripts) that fetches aerial images of Dutch houses from public services.
+The **Solar Panel Detection System** is responsible for **analyzing house images to detect solar panels**. It also includes a lightweight data ingestion process (Python-based) that automatically fetches aerial images of Dutch houses from public services.
 
-The main stakeholders and external systems involved are:
+**Key Stakeholders and External Systems**:
 
-**Users:**
-- **Developers**: Upload training images and manage the retraining process.
-- **Nijhuis Bouw (Client)**: Uploads inference images and checks detection results.
-- **Selin (Product Owner)**: Also uploads inference images and verifies detection results.
+- **Stakeholders**  
+  - **Nijhuis Bouw (Client)**: Submits images for inference and checks detection results.  
 
-**External Systems:**
-- **CommonDataFactory**: External service that receives a **city name** and returns a **list of addresses**.
-- **Bag Viewer Kadaster**: Receives an **address** and returns **X, Y coordinates**.
-- **PDOK Luchtfoto WMS**: Receives **X, Y coordinates** and returns the corresponding **aerial image** of the house.
-- **Data Storage for Results**: This is an existing Excel file from Selin, where detection results are stored alongside other project-related data (e.g., for energy label calculation). A migration to a proper database is being considered.
-
+- **External Services**  
+  - **CommonDataFactory**: Receives a **city name** and returns a **list of addresses**.  
+  - **Bag Viewer Kadaster**: Takes an **address** and provides the corresponding **X, Y coordinates**.  
+  - **PDOK Luchtfoto WMS**: Takes **X, Y coordinates** and returns the **aerial image** of a house.  
+  - **Data Storage for Results**: Currently an Excel file (owned by Selin) that stores detection outputs alongside other project data (e.g., energy label calculations). A move to a more robust database solution is under consideration.
 
 
 
 # 4. Solution Strategy
 
-The **main goal** of this project is to build a **fully automated, monolithic Data and ML Pipeline** that detects solar panels in aerial or satellite images and links these detections to Dutch house IDs. We adopt a **simplified machine learning pipeline**—as illustrated below—focusing on the following stages:
+The **primary objective** of this project is to implement a **fully automated, monolithic Data and ML Pipeline** for detecting solar panels in aerial or satellite images and associating these detections with Dutch house IDs. We utilize a **simplified machine learning pipeline**—outlined below—focusing on:
 
 1. **Data Ingestion / Versioning**  
 2. **Data Preprocessing**  
@@ -70,35 +66,32 @@ The **main goal** of this project is to build a **fully automated, monolithic Da
 5. **Model Validation**  
 6. **Model Feedback**
 
-In general we need to distinguish between multiple big processes we will build here. 
+Additionally, there are **three major processes** within this monolithic solution:
 
-1. Training Pipeline
-This process is mostly about the above image/pipeline.
-2. Dutch houses scraping process
-This is what we called Webscraping System in chapter 3 System Scope and Context. This could be also seen as a part of Data ingestion 
-3. Inference Pipeline
+1. **Training Pipeline** – Implements the typical ML flow (data ingestion, preprocessing, training, etc.).  
+2. **Dutch Houses Scraping Process** – Known as the Webscraping System in [Chapter 3: System Scope and Context](#), effectively a sub-part of **Data Ingestion** for addresses and house imagery.  
+3. **Inference Pipeline** – Applies the trained model to new images to detect solar panels and link them to Dutch house IDs.
 
-> **Note:** The pipeline diagram is adapted from the *DataOps Specialization (2024-2025), Deployment and Operations* lecture materials by Deepak Tunuguntla and Pieter Zeilstra (Saxion University of Applied Sciences).  
-> For this project, **Data Validation**, **Model Tuning** and **Model Analysis** are **out of scope**.
+> **Note:** Pipeline diagram adapted from *DataOps Specialization (2024-2025), Deployment and Operations* by Deepak Tunuguntla and Pieter Zeilstra (Saxion University of Applied Sciences).  
+> **Data Validation**, **Model Tuning**, and **Model Analysis** are **out of scope** for this project.
 
 ![ML Pipeline](images/ml-pipeline.png)
 
-Because our resources are limited and the team is small, a **monolithic end-to-end pipeline** is simpler to maintain than multiple microservices. We will still keep each phase (Ingestion, Preprocessing, Training, etc.) **modular** within the monolithic structure, so we can evolve individual steps if needed.
+Given our **limited resources** and **small team**, a **monolithic, end-to-end pipeline** is easier to maintain than multiple microservices. However, each phase (Ingestion, Preprocessing, Training, etc.) remains **modular** so individual steps can be improved or replaced without re-architecting the entire system.
 
-- **Automation & Reproducibility**: We plan to automate pipeline execution using a scheduling or orchestration mechanism (e.g., Apache Airflow).  
-- **Accuracy & Domain Adaptation**: We will compare multiple Machine Learning object detection models (e.g., YOLO, Faster R-CNN). Although model tuning is out of scope, we aim to ensure a robust baseline accuracy given our training data (Germany) differs from inference data (Netherlands).  
-- **House ID Linking**: A subsystem (still part of the monolith) will handle address lookups via Kadaster/PDOK APIs, linking detection results to the specific records in the existing data storage from the Selin, where more information about the same house are stored.
+- **Automation & Reproducibility**: We automate execution using a scheduling/orchestration mechanism (e.g., Apache Airflow).  
+- **Accuracy & Domain Adaptation**: We compare multiple object detection models (e.g., YOLO, Faster R-CNN). Model tuning lies outside our scope, but we aim for a robust baseline since our training data (Germany) differs from inference data (Netherlands).  
+- **House ID Linking**: A subsystem (still part of the monolith) queries Kadaster/PDOK APIs to map detection results to specific addresses. This data is then linked to the final data storage, enabling future analyses and integrations.
 
 ---
 
 ## 4.1 Addressing Key Business Goals
 
-| **Business Goal**                                     | **Scenario**                                                                                                                                                                 | **Solution Approach**                                                                                                                                                 |
-|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Goal 1: Automation of Solarpanel Detection System**  | - New aerial/satellite images should trigger the pipeline automatically. <br/> - Minimal manual intervention once data arrives.                                             | - **Monolithic end-to-end pipeline** with automated scheduling/orchestration. <br/> - **Containerized steps** (if applicable) to ensure consistent environments. <br/> - **Version control** for reproducibility. |
-| **Goal 2: Solar Panel Detection Accuracy**             | - Model must reliably detect panels in Dutch aerial imagery. <br/> - Compare different object detection frameworks for baseline accuracy.                                    | - **Evaluate multiple ML models** (e.g., YOLO, Faster R-CNN).                |
-| **Goal 3: House ID Detection / Kadaster Integration**  | - After detecting solar panels, link results to specific addresses in the final data storage                             | <br/> - **Coordinate-based matching** of bounding boxes to house polygons. <br/> - **Automated data retrieval** via public APIs and Webservices.                |
-
+| **Business Goal**                                     | **Scenario**                                                                                                                                          | **Solution Approach**                                                                                                                                                         |
+|--------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Goal 1: Automation of Solar Panel Detection**        | - New aerial or satellite images should **auto-trigger** the pipeline. <br/> - **Minimal** manual intervention once data is available.                 | - **Monolithic end-to-end pipeline** with Airflow (or similar) scheduling. <br/> - Potentially **containerized steps** for consistency. <br/> - **Version control** for reproducibility.                            |
+| **Goal 2: Solar Panel Detection Accuracy**             | - Model must reliably detect panels in **Dutch** aerial imagery. <br/> - Evaluate and compare **object detection frameworks** for baseline accuracy.   | - **Experiment with multiple ML models** (e.g., YOLO, Faster R-CNN). <br/> - Validate performance on reference data from both Germany and the Netherlands.                                                         |
+| **Goal 3: House ID Detection / Kadaster Integration**  | - Post-detection, **associate** results with Dutch addresses. <br/> - Integrate with Kadaster’s coordinate-based data.                                 | - **Coordinate-based matching** of bounding boxes to house polygons. <br/> - **Automated** data retrieval via public APIs (Kadaster, PDOK) and storing results in final data storage.                              |
 
 
 
@@ -120,42 +113,196 @@ Each of these components was carefully selected based on **scalability, ease of 
 
 ### Selected Components and Alternatives Comparison
 
-| **Component**       | **Chosen Tool**   | **Why Chosen?**                                                                                                                                                    | **Alternative(s)**        | **Why Not Chosen?**                                                                                                                                  |
-|--------------------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Storage**       | **MinIO**        | - S3-compatible API, making migration and integration easier  <br> - Lightweight and can be self-hosted on-premises or in the cloud  <br> - Scalable and performant for large datasets  <br> - Open-source and cost-effective compared to managed solutions | AWS S3, Azure Blob, GCS | - Managed cloud services can be expensive for large-scale storage  <br> - Vendor lock-in concerns  <br> - Less flexibility in self-hosted environments |
-| **Orchestration** | **Apache Airflow** | - Industry-standard tool for workflow orchestration  <br> - Scalable, supports distributed execution  <br> - Large community and extensive plugin support  <br> - Integrates well with MinIO, Python, and ML pipelines | Prefect, Dagster, Kubeflow | - **Prefect** is easier to use but lacks some enterprise-level capabilities like complex DAGs  <br> - **Dagster** is great for data pipelines but less mature for ML workflows  <br> - **Kubeflow** is powerful but complex to set up and maintain |
-| **Model Training** | **YOLOv8**       | - State-of-the-art real-time object detection  <br> - Pre-trained models available, reducing training time  <br> - Optimized for edge and cloud deployment  <br> - Faster inference compared to alternatives, making it suitable for real-time applications | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve  <br> - **MMDetection** is powerful but requires extensive configuration  <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection |
-| **Database** | **PostgreSQL** | - Perfect integration with Airflow (Airflow's native metadata DB)  <br> - PostGIS extension for geospatial data (crucial for property location analysis)  <br> - Strong data integrity with ACID compliance  <br> - Open-source with no licensing costs  <br> - JSON support for flexible schema when needed  <br> - Scalable for both logging and analytical queries | SQL Server, MongoDB, TimescaleDB | - **SQL Server** has licensing costs and higher resource requirements  <br> - **MongoDB** has weaker integration with Airflow and less mature spatial capabilities  <br> - **TimescaleDB** is specialized for time-series data which is only one aspect of our needs |
+### Selected Components and Alternatives Comparison
 
-
-
+| **Component**       | **Chosen Tool**    | **Why Chosen?**                                                                                                                                                                                                                                                                                                          | **Alternative(s)**             | **Why Not Chosen?**                                                                                                                                                                                                                                        |
+|---------------------|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Storage**         | **MinIO**          | - S3-compatible API, making migration and integration easier <br> - Lightweight and can be self-hosted on-premises or in the cloud <br> - Scalable and performant for large datasets <br> - Open-source and cost-effective compared to managed solutions                                                                   | AWS S3, Azure Blob, GCS        | - Managed cloud services can be expensive for large-scale storage <br> - Vendor lock-in concerns <br> - Less flexibility in self-hosted environments                                                                                                        |
+| **Orchestration**   | **Apache Airflow** | - Industry-standard tool for workflow orchestration <br> - Scalable, supports distributed execution <br> - Large community and extensive plugin support <br> - Integrates well with MinIO, Python, and ML pipelines                                                                                                      | Prefect, Dagster, Kubeflow     | - **Prefect** is simpler but lacks some advanced DAG capabilities <br> - **Dagster** is great for data pipelines but less mature for ML workflows <br> - **Kubeflow** is powerful but complex to set up and maintain                                                                             |
+| **Model Training**  | **YOLOv8**         | - State-of-the-art real-time object detection <br> - Pre-trained models available, reducing training time <br> - Optimized for edge and cloud deployment <br> - Faster inference compared to alternatives, making it suitable for real-time applications                                                                    | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve <br> - **MMDetection** is powerful but requires extensive configuration <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection                                               |
+| **Database**        | **PostgreSQL**     | - Perfect integration with Airflow (Airflow's native metadata DB) <br> - PostGIS extension for geospatial data (key for property location analysis) <br> - Strong data integrity with ACID compliance <br> - Open-source with no licensing costs <br> - JSON support for flexible schema <br> - Scalable for logging/analytics | SQL Server, MongoDB, TimescaleDB | - **SQL Server** has licensing costs and higher resource demands <br> - **MongoDB** has weaker integration with Airflow and less mature spatial capabilities <br> - **TimescaleDB** is specialized for time-series data, which only partially fits our use case                                  |
+| **Data Versioning** | **DVC**            | - Integrates with Git to handle large files and data versioning <br> - Ensures reproducible ML experiments by tracking data changes <br> - Lightweight, open-source, and well-documented <br> - Works seamlessly with existing code and cloud storage (MinIO)                                                           | Git LFS, Git-annex             | - **Git LFS** can become expensive or inconvenient for large datasets <br> - **Git-annex** is powerful but less straightforward to integrate with ML workflows <br> - Other solutions often lack the specialized ML and data pipeline focus that DVC provides                                  |
+| **Experiment Tracking** | **MLflow**    | - Popular open-source tool for experiment logging and model registry <br> - Easy to integrate with Python-based ML pipelines <br> - Tracks metrics, parameters, and artifacts in a centralized manner <br> - Supports model packaging and deployment (model registry)                                                 | Weights & Biases, Neptune.ai, Azure ML | - **Weights & Biases** and **Neptune.ai** are SaaS offerings (potential cost & vendor lock-in) <br> - **Azure ML** is powerful but can be overkill for smaller teams and requires more Azure-specific setup <br> - MLflow strikes a balance between simplicity, flexibility, and cost-effectiveness |
 
 
 # 5. Building Block View
 
+This section outlines the overall structure of the Solar Panel Detection System, showing the main containers and their interactions. The external storage for results can optionally be integrated into the PostgreSQL database if desired.
+
+## 5.1 Container View
+
+![Container Diagram - Solarpanel Detection System](images/c4_container_diagram.svg)
+
+The diagram above shows the internal structure of the Solar Panel Detection System and how it interacts with external systems and users:
+
+- **Airflow** orchestrates the entire pipeline by scheduling scraping, training, and inference tasks.
+- **Solardetection Service** performs data collection (addresses, imagery), model training, and batch inference. It acts as the core logic of the system.
+- **Solardetection API (FastAPI)** provides real-time detection by accepting uploaded images and returning predictions. It loads the latest trained model artifacts (from MinIO) and may reuse inference logic from the pipeline.
+- **MLflow** is used by the pipeline to log experiments, including parameters, metrics, and models. It stores metadata in **PostgreSQL**.
+- **PostgreSQL** serves as a central relational database for both MLflow metadata and detection results. It is written to by both the pipeline and MLflow.
+- **MinIO** serves as an object storage system. The pipeline stores input images and trained model artifacts here. FastAPI retrieves model artifacts from MinIO for real-time predictions.
+
+### External Systems
+
+- **CommonDataFactory** provides addresses for a given city.
+- **Bag Viewer Kadaster** resolves addresses to geographic coordinates.
+- **PDOK** returns aerial images for given coordinates.
+- **Data Storage for Results (CSV)** is an external file where final batch detection results are exported. It contains additional house-level energy data and may be merged into the PostgreSQL database in the future.
+- **Nijhuis Bouw** is the external user who uploads house images and retrieves detection results via the API.
+
+
+
+## 5.2 Component View
+
+Below, we focus on three key containers that make up our system: the **Solarpanel Detection Service**, **MLflow**, and **Airflow**. Other containers are either external services or less critical for this architectural overview.
+
+### 5.2.1 Solarpanel Detection Service Container
+
+The diagram below shows the **Solarpanel Detection Service** container broken down into three internal components (or pipelines). We’ve removed textual annotations on the relationships to keep the view concise. Each pipeline handles a specific part of the data flow:
+
+1. **Training Pipeline**  
+   This is the **primary pipeline** for continually training the model. Whenever new training data arrives, it runs the full training process, tracking performance and metadata in MLflow. It also deploys any newly trained model.
+
+2. **Inference Pipeline**  
+   When new data (e.g., images) is uploaded, this pipeline uses the latest model to detect solar panels, then stores the results in PostgreSQL.
+
+3. **Webscraping Process**  
+   Since manually collecting Dutch aerial imagery is impractical, the Webscraping component automates data retrieval. After a user specifies a city, it fetches relevant housing addresses, their coordinates, and associated aerial images. Each house image is tied to a unique House ID, enabling the detection results to be merged with existing energy-related data.
+
+The following diagram highlights these three pipelines within the Solarpanel Detection Service. For details about each pipeline’s runtime flow, see [Chapter 6](#runtime-view).
+
+![Component Diagram - Solarpanel Detection Container](images/c4_component_solardetection.svg)
+
+
+### 5.2.2 MlFlow Container
+MLflow lists the following components that can be used on their [documentation](https://www.mlflow.org/docs/1.23.1/concepts.html).:
+- MLflow Tracking
+- MLflow Projects 
+- MLflow Models
+- MLflow Registry
+
+For this project only MLflow Tracking is used. 
+Here is a brief description of what MLflow tracking is from their website:
+> MLflow Tracking is an API and UI for logging parameters, code versions, metrics, and artifacts when running your machine learning code and
+> for later visualizing the results. You can use MLflow Tracking in any environment (for example, a standalone script or a notebook) to log
+> results to local files or to a server, then compare multiple runs. Teams can also use it to compare results from different users.
+
+
+![Component Diagram - MLflow Container](images/c4_component_mlflow.svg)
+
+
+
+
+### 5.2.3 Airflow Container
+
+The Airflow website provides a detailed component diagram of Airflow: [https://airflow.apache.org/docs/apache-airflow/2.5.3/core-concepts/overview.html](https://airflow.apache.org/docs/apache-airflow/2.5.3/core-concepts/overview.html).  
+In our project, **Airflow** schedules tasks (defined in **DAGs**) to run the **Python scripts** that implement our solar panel detection logic. Specifically:
+
+1. **DAG Files** (Directed Acyclic Graph files) define **tasks** and **dependencies**, telling Airflow *what* to run and *when*.  
+2. **Workers** (spawned by the Executor) then **execute** these tasks. When a task is triggered, the Worker loads and runs our Python code, which in turn calls out to the Solar Panel Detection Service.
+
+In other words, the DAG files serve as the **Airflow “recipe”** for orchestrating our solar panel detection scripts; the scripts themselves *live in our codebase* (deployed to the Airflow environment) and are *executed* on Airflow Workers.
+![Component Diagram - Airflow Container](images/component_airflow.png)
+
+
 
 # 6. Runtime View
-- **Data flow**: How data moves through the system.
-- **Model serving process**: How predictions are generated and served.
-- **Monitoring & logging**: Performance tracking and debugging.
+
+Below, we illustrate the three main pipelines within the **Solardetection Service** via dynamic runtime diagrams. Each pipeline corresponds to a distinct process (webscraping, training, and inference).  
+
+## 6.1 Webscraping Process
+
+![C4 dynamic diagram for scraping inference data](images/c4_dynamic_webscraping.svg)
+
+The **Webscraping** process begins when **Nijhuis** provides a city name to the **Solardetection API**. The API delegates the request to the Webscraping component within the Solardetection Service, which then interacts with various external services:
+
+1. **CommonDataFactory** – Provides a comprehensive list of addresses for the city.  
+2. **Bag Viewer Kadaster** – Translates each address into X,Y coordinates and returns a unique House ID.  
+3. **PDOK Luchtfoto WMS** – Retrieves aerial imagery for each address, using the provided coordinates.  
+
+As shown in the diagram, the Webscraping component stores retrieved images in **MinIO** (`S3-compatible API`). This ensures the images can be readily accessed by subsequent steps or other pipelines.
+
+**Optional Inference Trigger**  
+Once the webscraping process completes and the data is saved (in both the database and MinIO), you can **manually** initiate the **Inference Pipeline** (or have it triggered automatically if desired). This follow-up stage uses the newly gathered images and metadata to detect solar panels, as part of your broader data processing workflow.
+
+
+## 6.2 Training Pipeline
+
+![C4 dynamic diagram for training pipeline](images/c4_dynamic_training.svg)
+
+
+The **Training Pipeline** ensures that new or updated training data (images and labels) can be processed seamlessly to produce a refreshed solar panel detection model. Here’s an overview of the main steps:
+
+1. **Data Upload**  
+   A user (e.g., Nijhuis) **manually** places new training images and metadata in the **MinIO** object store.
+
+2. **Airflow Orchestration**  
+   An **Airflow DAG** (the Training DAG) periodically checks the relevant MinIO bucket. If new data is present, it triggers the **Training Pipeline** within the **Solardetection Service**.
+
+3. **Model Training**  
+   The Training Pipeline retrieves the images from MinIO, runs the training process (e.g., YOLO or another ML framework), and collects metrics (accuracy, loss, etc.).
+
+4. **Logging and Versioning**  
+   Training metrics and model parameters are logged in **MLflow** for future reference. The newly trained model artifact is also stored back into MinIO under a versioned location.
+
+5. **Metadata Storage**  
+   Finally, relevant training run details (e.g., model version, timestamp) are written to **PostgreSQL**. This allows easy tracking of which model was trained under specific conditions.
+
+By automating these steps, the pipeline helps maintain an **up-to-date model** with minimal manual oversight, ensuring detection accuracy improves over time.
+
+## 6.3 Inference Pipeline
+
+Below is the dynamic diagram detailing how **new inference images** are processed by the system to detect solar panels:
+
+![C4 dynamic diagram for detecting solar panel](images/c4_dynamic_inference.svg)
+
+1. **Manual Upload**  
+   **Nijhuis** (the user) manually places new inference images in the **MinIO** inference bucket via an S3-compatible interface.  
+
+2. **Airflow Inference DAG**  
+   An **Inference DAG** within **Airflow** checks this bucket daily (or on a specified schedule). Once it detects newly uploaded images, it **triggers** the inference pipeline.
+
+3. **Inference Execution**  
+   The **Inference Pipeline** component in the **Solardetection Service** loads the **YOLO model** and any required files from **MinIO**. It processes the images to detect solar panels (bounding boxes, confidence scores, etc.).
+
+4. **Results Storage**  
+   Upon completion, the pipeline **stores** the detection results in **PostgreSQL**.
+
+This automated setup allows the system to **routinely** scan for and process newly uploaded images without manual monitoring—beyond the initial image upload by the user.
+
+
+
+
+
+
+
 
 # 7. Deployment View
-- **Infrastructure choices**: Cloud services, local servers.
-- **CI/CD pipeline for ML models**.
-- **Containerization strategy**: Docker, Kubernetes.
-- **Versioning & rollback mechanisms**.
+
+Our entire Solar Panel Detection System is deployed on Microsoft Azure, leveraging a **Student Account** to minimize infrastructure costs. The diagram below provides a high-level overview of how the system’s containers (Airflow, Solardetection Service, FastAPI, MLflow, PostgreSQL, and MinIO) are hosted and interact within the Azure environment.
+
+**Key Points:**
+- We package each component as a **Docker** container, ensuring consistent and reproducible deployments.
+- The **Azure** environment offers easy management of compute resources, allowing us to scale or adjust configurations if needed.
+- **PostgreSQL** and **MinIO** are co-located to simplify data access and reduce latency, while **MLflow** manages experiment tracking.
+- **Airflow** handles scheduling and orchestration, triggering tasks to run on the Solardetection Service.
+- This setup meets our current project needs without excessive overhead, aligning well with the constraints of a student account.
+
+![Deployment Diagram](images/c4_deployment.svg)
+
+
 
 # 8. Cross-cutting Concepts
-
-# 9. Architectural Decisions
-
-# 10. Quality Requirements
+- Solution to fetch dutch housing images with appropriate bounding box size (not done yet)
+- 
 
 
-# 11. Risks and Technical Debt
-- **Potential biases in data and models**.
-- **Computational cost and resource constraints**.
-- **Integration challenges with existing systems**.
+# 9. Risks and Technical Debt
+Risks:
+- Training data is different format/and location than inference data => model might perform bad
+
+Technical Debts:
+- To reach the goal to have an automated process for webscraping inference data(dutch housing images), it is hard in the last step, to get the bounding box of exactly one house! Unclear what offset for the boundingbox to use for houses in different size​. Maybe calculated by size of house?
 
 
 ---
