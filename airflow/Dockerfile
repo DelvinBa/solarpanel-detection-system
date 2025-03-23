@@ -24,5 +24,8 @@ COPY requirements.txt /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
 # After your main pip install
 RUN pip install --no-cache-dir minio==7.2.3
+
+RUN pip install --no-cache-dir opencv-python
+
 # Set the default entrypoint to run Airflow
 ENTRYPOINT ["airflow"]
