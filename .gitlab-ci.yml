@@ -9,6 +9,8 @@ pages:
     - tlmgr option repository http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/tlnet-final
     - tlmgr update --self --verify-repo=none
     - tlmgr install beamer caption soul koma-script --verify-repo=none
+    - apt-get update && apt-get install -y librsvg2-bin
+
   script:
     - quarto render . --output-dir public
   artifacts:
