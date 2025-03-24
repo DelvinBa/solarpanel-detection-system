@@ -113,17 +113,103 @@ Each of these components was carefully selected based on **scalability, ease of 
 
 ### Selected Components and Alternatives Comparison
 
-### Selected Components and Alternatives Comparison
+Below is a concise overview of our key components, the chosen tools, and alternatives considered.
 
-| **Component**       | **Chosen Tool**    | **Why Chosen?**                                                                                                                                                                                                                                                                                                          | **Alternative(s)**             | **Why Not Chosen?**                                                                                                                                                                                                                                        |
-|---------------------|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Storage**         | **MinIO**          | - S3-compatible API, making migration and integration easier <br> - Lightweight and can be self-hosted on-premises or in the cloud <br> - Scalable and performant for large datasets <br> - Open-source and cost-effective compared to managed solutions                                                                   | AWS S3, Azure Blob, GCS        | - Managed cloud services can be expensive for large-scale storage <br> - Vendor lock-in concerns <br> - Less flexibility in self-hosted environments                                                                                                        |
-| **Orchestration**   | **Apache Airflow** | - Industry-standard tool for workflow orchestration <br> - Scalable, supports distributed execution <br> - Large community and extensive plugin support <br> - Integrates well with MinIO, Python, and ML pipelines                                                                                                      | Prefect, Dagster, Kubeflow     | - **Prefect** is simpler but lacks some advanced DAG capabilities <br> - **Dagster** is great for data pipelines but less mature for ML workflows <br> - **Kubeflow** is powerful but complex to set up and maintain                                                                             |
-| **Model Training**  | **YOLOv8**         | - State-of-the-art real-time object detection <br> - Pre-trained models available, reducing training time <br> - Optimized for edge and cloud deployment <br> - Faster inference compared to alternatives, making it suitable for real-time applications                                                                    | Detectron2, MMDetection, EfficientDet | - **Detectron2** allows more customization but has a steeper learning curve <br> - **MMDetection** is powerful but requires extensive configuration <br> - **EfficientDet** provides better accuracy but is slower for real-time object detection                                               |
-| **Database**        | **PostgreSQL**     | - Perfect integration with Airflow (Airflow's native metadata DB) <br> - PostGIS extension for geospatial data (key for property location analysis) <br> - Strong data integrity with ACID compliance <br> - Open-source with no licensing costs <br> - JSON support for flexible schema <br> - Scalable for logging/analytics | SQL Server, MongoDB, TimescaleDB | - **SQL Server** has licensing costs and higher resource demands <br> - **MongoDB** has weaker integration with Airflow and less mature spatial capabilities <br> - **TimescaleDB** is specialized for time-series data, which only partially fits our use case                                  |
-| **Data Versioning** | **DVC**            | - Integrates with Git to handle large files and data versioning <br> - Ensures reproducible ML experiments by tracking data changes <br> - Lightweight, open-source, and well-documented <br> - Works seamlessly with existing code and cloud storage (MinIO)                                                           | Git LFS, Git-annex             | - **Git LFS** can become expensive or inconvenient for large datasets <br> - **Git-annex** is powerful but less straightforward to integrate with ML workflows <br> - Other solutions often lack the specialized ML and data pipeline focus that DVC provides                                  |
-| **Experiment Tracking** | **MLflow**    | - Popular open-source tool for experiment logging and model registry <br> - Easy to integrate with Python-based ML pipelines <br> - Tracks metrics, parameters, and artifacts in a centralized manner <br> - Supports model packaging and deployment (model registry)                                                 | Weights & Biases, Neptune.ai, Azure ML | - **Weights & Biases** and **Neptune.ai** are SaaS offerings (potential cost & vendor lock-in) <br> - **Azure ML** is powerful but can be overkill for smaller teams and requires more Azure-specific setup <br> - MLflow strikes a balance between simplicity, flexibility, and cost-effectiveness |
+---
 
+### 1. Storage
+**Chosen Tool:** **MinIO**  
+**Why Chosen?**  
+- S3-compatible API for easy future migration  
+- Lightweight, self-hosted option (on-prem or cloud)  
+- Scalable for large datasets  
+- Open-source and cost-effective  
+
+**Alternatives:** **AWS S3**, **Azure Blob**, **GCS**  
+**Why Not?**  
+- Managed services can become expensive at scale  
+- Possible vendor lock-in  
+- Reduced flexibility in self-hosted environments  
+
+---
+
+### 2. Orchestration
+**Chosen Tool:** **Apache Airflow**  
+**Why Chosen?**  
+- Widely adopted for workflow orchestration  
+- Scalable, with distributed execution support  
+- Large community and plugin ecosystem  
+- Integrates smoothly with Python-based ML pipelines  
+
+**Alternatives:** **Prefect**, **Dagster**, **Kubeflow**  
+**Why Not?**  
+- **Prefect**: Simpler but lacks advanced DAG capabilities  
+- **Dagster**: Great for data pipelines but less mature for ML workflows  
+- **Kubeflow**: Powerful but complex to set up and maintain  
+
+---
+
+### 3. Model Training
+**Chosen Tool:** **YOLOv8**  
+**Why Chosen?**  
+- Cutting-edge for real-time detection  
+- Pre-trained models shorten training time  
+- Optimized for edge/cloud deployment  
+- Fast inference suited for real-time applications  
+
+**Alternatives:** **Detectron2**, **MMDetection**, **EfficientDet**  
+**Why Not?**  
+- **Detectron2**: Highly customizable but has a steep learning curve  
+- **MMDetection**: Powerful but requires extensive configuration  
+- **EfficientDet**: More accurate but slower for real-time detection  
+
+---
+
+### 4. Database
+**Chosen Tool:** **PostgreSQL**  
+**Why Chosen?**  
+- Native integration with Airflow  
+- **PostGIS** extension for geospatial analysis  
+- ACID-compliant, open-source, no licensing costs  
+- JSON support for flexible schemas  
+- Scalable for both logging and analytics  
+
+**Alternatives:** **SQL Server**, **MongoDB**, **TimescaleDB**  
+**Why Not?**  
+- **SQL Server**: Licensing costs and higher resource needs  
+- **MongoDB**: Less mature geospatial features, weaker Airflow integration  
+- **TimescaleDB**: Specialized for time-series data only  
+
+---
+
+### 5. Data Versioning
+**Chosen Tool:** **DVC** (Data Version Control)  
+**Why Chosen?**  
+- Integrates with Git for large file/data tracking  
+- Ensures reproducible ML experiments by versioning datasets  
+- Lightweight, open-source, and well-documented  
+- Works seamlessly with MinIO and cloud storage  
+
+**Alternatives:** **Git LFS**, **Git-annex**  
+**Why Not?**  
+- **Git LFS**: Can become expensive or inconvenient for very large datasets  
+- **Git-annex**: Flexible but not as straightforward for ML pipelines  
+
+---
+
+### 6. Experiment Tracking
+**Chosen Tool:** **MLflow**  
+**Why Chosen?**  
+- Popular, open-source tool for logging experiments and artifacts  
+- Easy to integrate with Python ML pipelines  
+- Provides model packaging and registry features  
+- Centralizes metrics, parameters, and artifacts  
+
+**Alternatives:** **Weights & Biases**, **Neptune.ai**, **Azure ML**  
+**Why Not?**  
+- **Weights & Biases** / **Neptune.ai**: SaaS offerings can introduce additional cost and potential vendor lock-in  
+- **Azure ML**: Very powerful but overkill for smaller teams; heavier Azure-specific setup requirements  
+- MLflow offers a balanced mix of simplicity, flexibility, and no extra licensing fees
 
 # 5. Building Block View
 
