@@ -1,29 +1,14 @@
-from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
 
-import typer
-from loguru import logger
-from tqdm import tqdm
+# Load the dataset
+file_path = "../data/external/energy_data_enschede.csv"
+df = pd.read_csv(file_path, delimiter=";")
 
-from solar_panel_detection.config import FIGURES_DIR, PROCESSED_DATA_DIR
+# # Show basic info
+# print("Dataset preview:")
+# print(df.head())
+# print("\nMissing values:")
+# print(df.isnull().sum())
 
-app = typer.Typer()
-
-
-@app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    input_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
-    output_path: Path = FIGURES_DIR / "plot.png",
-    # -----------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Generating plot from data...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Plot generation complete.")
-    # -----------------------------------------
-
-
-if __name__ == "__main__":
-    app()
+print(df.columns.tolist())
