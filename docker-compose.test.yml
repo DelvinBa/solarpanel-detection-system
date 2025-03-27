@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  test:
+    build: .
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      bash -c "pip install pytest flake8 &&
+               echo 'Running flake8...' &&
+               flake8 src/ --max-line-length=120 &&
+               echo 'Running pytest...' &&
+               python -m pytest src/ -v"
+    environment:
+      - PYTHONPATH=/app 

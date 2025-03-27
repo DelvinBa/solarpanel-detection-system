@@ -1,19 +1,107 @@
 stages:
+  - test
+  - build
+  - deploy
   - pages
 
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+  PYTHON_VERSION: "3.9"
+
+# Lint and test Python code
+test:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install -r requirements.txt
+    - pip install pytest flake8
+    - python --version
+  script:
+    - echo "Running flake8 code quality checks..."
+    - flake8 src/ --max-line-length=120
+    - echo "Running pytest unit tests..."
+    - python -m pytest src/ -v
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+    expire_in: 1 week
+
+# Build Docker image
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Building Docker image ${IMAGE_NAME}..."
+    - docker build -t $IMAGE_NAME .
+    - echo "Pushing Docker image to registry..."
+    - docker push $IMAGE_NAME
+  only:
+    - main
+    - tags
+
+# Deploy to staging environment
+deploy_staging:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to staging environment..."
+    - ssh $STAGING_SERVER_USER@$STAGING_SERVER_HOST "cd /opt/solar-panel-detection && docker-compose pull && docker-compose up -d"
+  environment:
+    name: staging
+    url: http://${STAGING_SERVER_HOST}:8080
+  only:
+    - main
+
+# Deploy to production environment
+deploy_production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to production environment..."
+    - ssh $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST "cd /opt/solar-panel-detection && docker-compose pull && docker-compose up -d"
+  environment:
+    name: production
+    url: http://${PRODUCTION_SERVER_HOST}:8080
+  only:
+    - tags
+  when: manual
+
+# Generate and publish project documentation
 pages:
   stage: pages
   image: ghcr.io/quarto-dev/quarto-full:latest
-  # Functions that should be executed before the build script is run
   before_script:
     - tlmgr option repository http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/tlnet-final
     - tlmgr update --self --verify-repo=none
     - tlmgr install beamer caption soul koma-script --verify-repo=none
     - apt-get update && apt-get install -y librsvg2-bin
-
   script:
+    - echo "Rendering Quarto documentation..."
     - quarto render . --output-dir public
   artifacts:
     paths:
-      # The folder that contains the files to be exposed at the Page URL
       - public
+  only:
+    - main
