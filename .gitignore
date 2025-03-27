@@ -177,3 +177,6 @@ db_data/
 minio_data/
 src/mnistdata/
 logs/
+pgadmin-data/
+airflow_logs.txt
+traintest/labels/
