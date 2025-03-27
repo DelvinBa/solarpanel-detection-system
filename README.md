@@ -1,3 +1,5 @@
+# Automatic Solar Panel Detection
+
 ## 📌 Project Background
 
 The energy transition is not just a technical challenge but a societal one. The **NOWATT** project aims to involve residents, SMEs, and government entities in accelerating energy neutrality at the neighborhood level using **Artificial Intelligence (AI)**. One critical aspect is **predicting the energy labels** of homes in the Netherlands.
@@ -24,130 +26,296 @@ You will work with:
 
 ---
 
+## 🏗️ Architecture
+
+This project consists of several components:
+
+1. **MLflow** - For model tracking, versioning, and serving
+2. **Airflow** - For automated workflow orchestration
+3. **MinIO** - For object storage (images and model artifacts)
+4. **PostgreSQL** - For metadata storage
+5. **YOLO** - For object detection
+
+### System Architecture Diagram
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│             │     │             │     │             │
+│   Images    │────▶│   Airflow   │────▶│  Database   │
+│  (MinIO)    │     │  Workflow   │     │ (PostgreSQL)│
+│             │     │             │     │             │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │                           
+                           ▼                           
+                    ┌─────────────┐                    
+                    │             │                    
+                    │  YOLO Model │                    
+                    │             │                    
+                    └──────┬──────┘                    
+                           │                           
+                           ▼                           
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│             │     │             │     │             │
+│  MLflow     │◀────│  Processed  │────▶│  Labeled    │
+│  Tracking   │     │   Results   │     │   Images    │
+│             │     │             │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+---
+
 ## Prerequisites
 
 Ensure you have the following installed:
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Python 3.8+](https://www.python.org/downloads/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Python 3.10+](https://www.python.org/downloads/)
 - [pip](https://pip.pypa.io/en/stable/)
-
 
 ## ⚙️ Setup Guide
 
-
-
-### **1️⃣ Create a Virtual Environment**
+### **1️⃣ Clone the Repository**
 ```bash
-python3 -m venv venv
+git clone <repository-url>
+cd AutomaticSolarPanelDetection
+```
+
+### **2️⃣ Create a Virtual Environment**
+```bash
+python -m venv venv
 source venv/bin/activate  # macOS/Linux
 venv\Scripts\activate     # Windows
 ```
 
-### **2️⃣ Install Dependencies**
-```
+### **3️⃣ Install Dependencies**
+```bash
 pip install -r requirements.txt
 ```
 
-### **🛑 Configuring Git for Jupyter Notebooks**
-Enable Automatic Output Stripping for Notebooks to prevent unnecessary notebook output changes in Git commits:
-```
-pre-commit install
-```
+### **4️⃣ Configure Environment Variables**
+The project uses environment variables for configuration. You can either:
 
-### **3️⃣ Download Images**
+1. Use the default values in the `.env` file
+2. Create your own `.env` file based on the provided template
 
-1. Download labels from here: https://figshare.com/articles/dataset/Solar_Panel_Object_Labels/22081091
-2. Download images from here: https://resources.maxar.com/product-samples/15-cm-hd-and-30-cm-view-ready-solar-panels-germany
-3. Put the labels for hd images in `data/processed/labels` and the hd images in `data/processed/images` folders
-
-
-### **4️⃣ Start MinIO and Other Services with Docker**  
-Ensure MinIO and any required services are running:  
-```
-docker-compose up -d  
+```bash
+# Copy the template and modify as needed
+cp .env.template .env
 ```
 
-#### **Verify MinIO is Running**  
-Open: [http://localhost:9001](http://localhost:9001)  
+### **5️⃣ Prepare YOLO Model**
+Ensure your YOLO model is correctly placed in the appropriate directory:
 
-Login:  
-- **Username:** `minioadmin`  
-- **Password:** `minioadmin`  
+```bash
+# Create directory if it doesn't exist
+mkdir -p airflow/dags/models
 
-1. Create a bucket called `labeled-house-images`.
-2. Upload the `processed` folder and all its contents into that bucket.### **3️⃣ Download Images**
+# Place your YOLO model file (e.g., best5.pt) in this directory
+# cp /path/to/your/model.pt airflow/dags/models/best5.pt
+```
 
-1. Download labels from [Figshare](https://figshare.com/articles/dataset/Solar_Panel_Object_Labels/22081091).
-2. Download images from [Maxar](https://resources.maxar.com/product-samples/15-cm-hd-and-30-cm-view-ready-solar-panels-germany).
-3. Move the downloaded files to the following directories:
-   - Place the HD image labels in `data/processed/labels/`
-   - Place the HD images in `data/processed/images/`
+### **6️⃣ Start the Services**
+```bash
+docker-compose up -d
+```
 
----
+This command will start all necessary services:
+- **MLflow** server on port 5000
+- **Airflow** webserver on port 8080
+- **MinIO** server on port 9000 (API) and 9001 (Console)
+- **PostgreSQL** databases for both MLflow and Airflow
 
-### **4️⃣ Start MinIO and Other Services with Docker**  
-Ensure MinIO and any required services are running: `docker-compose up -d`
+### **7️⃣ Verify Services**
 
+- **MLflow UI**: http://localhost:5000
+- **Airflow UI**: http://localhost:8080 (Username: admin, Password: admin)
+- **MinIO Console**: http://localhost:9001 (Username: minioadmin, Password: minioadmin)
 
-#### **Verify MinIO is Running**  
-1. Open: [http://localhost:9001](http://localhost:9001)  
+### **8️⃣ Set Up MinIO Bucket**
 
-2. Log in using the following credentials::  
-   - **Username:** `minioadmin`
-   - **Password:** `minioadmin`
+1. Open the MinIO Console: http://localhost:9001
+2. Log in using the credentials (default: minioadmin/minioadmin)
+3. Create a bucket called `mybucket` for storing images
+4. Upload your images to this bucket
 
-3. Create a bucket named `labeled-house-images`.
-4. Upload the entire processed folder and its contents into this bucket.
+## 🚀 Usage
 
-## Project Organization
+### Running the Airflow DAG
+
+The YOLO detection pipeline runs automatically every 5 minutes through an Airflow DAG. The DAG:
+
+1. Fetches images from the MinIO bucket
+2. Processes them with the YOLO model
+3. Saves the labeled images back to MinIO in the "labeled-images" folder
+4. Logs detection results to the PostgreSQL database
+
+You can manually trigger the DAG from the Airflow UI:
+
+1. Open http://localhost:8080
+2. Navigate to the DAGs page
+3. Find the "yolo_minio_airflow" DAG
+4. Click the "Trigger DAG" button
+
+### Tracking Model Performance with MLflow
+
+MLflow can be used to track model performance, versions, and experiments:
+
+1. Open http://localhost:5000
+2. View experiments, runs, and metrics
+3. Compare different model versions
+
+## 📁 Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         solar_panel_detection and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── src   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes solar_panel_detection a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+├── .env                    <- Environment variables for local development
+├── config.env              <- Environment variables for Docker containers
+├── docker-compose.yml      <- Docker Compose configuration
+├── airflow/                <- Airflow DAGs and configuration
+│   └── dags/               <- Airflow DAG definitions
+│       ├── models/         <- YOLO model files
+│       └── process_minio_yolo.py <- Main DAG for image processing
+├── mlflow/                 <- MLflow server configuration
+│   └── Dockerfile          <- Dockerfile for MLflow server
+├── data/                   <- Data files
+│   ├── external/           <- Data from third party sources
+│   ├── interim/            <- Intermediate processed data
+│   ├── processed/          <- Final processed data for modeling
+│   └── raw/                <- Original, immutable data
+├── models/                 <- Trained and serialized models
+├── notebooks/              <- Jupyter notebooks for exploration
+├── src/                    <- Source code
+│   ├── __init__.py         <- Makes src a Python module
+│   ├── config.py           <- Configuration settings
+│   ├── dataset.py          <- Dataset handling
+│   ├── features.py         <- Feature engineering
+│   └── modeling/           <- Model training and prediction
+├── requirements.txt        <- Python dependencies
+└── README.md               <- Project documentation
 ```
+
+## 🛠️ Configuration Options
+
+### Environment Variables
+
+Key environment variables that can be configured:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| PG_USER | PostgreSQL username for MLflow | mlflow |
+| PG_PASSWORD | PostgreSQL password for MLflow | mlflow |
+| PG_DATABASE | PostgreSQL database for MLflow | mlflow |
+| MLFLOW_PORT | Port for MLflow server | 5000 |
+| MLFLOW_BUCKET_NAME | MinIO bucket for MLflow artifacts | mlflow |
+| MINIO_ROOT_USER | MinIO root username | minioadmin |
+| MINIO_ROOT_PASSWORD | MinIO root password | minioadmin |
+| MINIO_PORT | MinIO API port | 9000 |
+| MINIO_CONSOLE_PORT | MinIO Console port | 9001 |
+
+## 🧹 Cleanup
+
+To stop and remove all containers:
+
+```bash
+docker-compose down
+```
+
+To also remove volumes (warning: this will delete all data):
+
+```bash
+docker-compose down -v
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the terms of the [LICENSE](LICENSE) file included in the repository.
+
+## Platform-Specific Setup
+
+### Windows
+1. Install Docker Desktop for Windows
+2. Make sure WSL2 is enabled (required for Docker Desktop)
+3. Clone this repository
+4. Open PowerShell or Command Prompt in the project directory
+5. Run:
+   ```powershell
+   docker-compose up -d
+   ```
+
+### macOS
+1. Install Docker Desktop for Mac
+2. Clone this repository
+3. Open Terminal in the project directory
+4. Run:
+   ```bash
+   docker-compose up -d
+   ```
+
+### Linux
+1. Install Docker and Docker Compose
+2. Clone this repository
+3. Open Terminal in the project directory
+4. Run:
+   ```bash
+   docker-compose up -d
+   ```
+
+## Accessing the Services
+
+- Airflow Web Interface: http://localhost:8080
+  - Username: admin (default)
+  - Password: admin (default)
+- MLflow UI: http://localhost:5000
+- MinIO Console: http://localhost:9001
+  - Username: minioadmin (default)
+  - Password: minioadmin (default)
+
+## Project Structure
+
+```
+.
+├── airflow/
+│   ├── dags/              # Airflow DAG files
+│   ├── Dockerfile         # Custom Airflow image
+│   └── start-airflow.sh   # Airflow startup script
+├── mlflow/                # MLflow configuration
+├── docker-compose.yml     # Docker Compose configuration
+└── .env                   # Environment variables (create from .env.example)
+```
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Make sure all required ports are available
+2. Check if Docker is running properly
+3. Try cleaning up Docker resources:
+   ```bash
+   docker-compose down -v
+   docker system prune -f
+   ```
+4. Restart Docker Desktop (Windows/macOS) or Docker service (Linux)
+5. Check the logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+## Development
+
+To modify the project:
+
+1. Edit the DAG files in `airflow/dags/`
+2. Rebuild the containers:
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
+
+## License
+
+[Your License Here]
 
