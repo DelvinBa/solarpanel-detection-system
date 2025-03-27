@@ -179,3 +179,4 @@ src/mnistdata/
 logs/
 pgadmin-data/
 airflow_logs.txt
+traintest/labels/
