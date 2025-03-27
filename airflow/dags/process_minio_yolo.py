@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 from minio import Minio
+from minio.commonconfig import CopySource
 import cv2
 import os
 import logging
@@ -91,7 +92,7 @@ def move_to_original(client, file_name):
         client.copy_object(
             BUCKET_NAME,
             original_path,
-            f"{BUCKET_NAME}/{file_name}"
+            CopySource(BUCKET_NAME, file_name)
         )
         
         # Remove the file from the root of the bucket
@@ -210,7 +211,7 @@ dag = DAG(
     'yolo_minio_airflow',
     default_args=default_args,
     description='Process images using YOLO model and store results in MinIO',
-    schedule_interval=timedelta(minutes=5),
+    schedule_interval=timedelta(minutes=60),
     catchup=False,
     tags=['yolo', 'minio'],
 )
