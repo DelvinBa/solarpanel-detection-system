@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-solar-panel-detection:latest}
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      echo "Build completed successfully"
+    environment:
+      - PYTHONPATH=/app 
