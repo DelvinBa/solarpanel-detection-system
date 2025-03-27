@@ -31,7 +31,7 @@ def get_coordinates(verblijfsobject_id):
 # For testing when run standalone:
 if __name__ == "__main__":
     import pandas as pd
-    csv_path = f"../data/interim/pid_vid_GM0153.csv"
+    csv_path = f"data/interim/pid_vid_GM0153.csv"
     df_loaded = pd.read_csv(csv_path, dtype={"vid": str})
     print(df_loaded.head())
     first_vid = df_loaded.loc[0, "vid"]
