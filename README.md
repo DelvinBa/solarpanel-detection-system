@@ -131,8 +131,28 @@ This command will start all necessary services:
 - **MLflow UI**: http://localhost:5000
 - **Airflow UI**: http://localhost:8080 (Username: admin, Password: admin)
 - **MinIO Console**: http://localhost:9001 (Username: minioadmin, Password: minioadmin)
+- **pgAdmin**: http://localhost:5050 (Email: admin@admin.com, Password: admin)
 
-### **8️⃣ Set Up MinIO Bucket**
+### **8️⃣ Accessing and Managing Databases with pgAdmin**
+
+Here's how to add and check your databases in pgAdmin:
+
+1. Open your browser and go to http://localhost:5050
+2. Login with:
+   - Email: admin@admin.com
+   - Password: admin
+3. Right-click on "Servers" in the left panel and select "Create" > "Server"
+4. In the "General" tab, give it a name like "Local PostgreSQL"
+5. In the "Connection" tab, enter:
+   - Host: postgres
+   - Port: 5432
+   - Maintenance database: airflow
+   - Username: airflow
+   - Password: airflow
+6. Click "Save" to connect to your PostgreSQL server
+7. You should now see both the `airflow` and `mlflow` databases in the server tree
+
+### **9️⃣ Set Up MinIO Bucket**
 
 1. Open the MinIO Console: http://localhost:9001
 2. Log in using the credentials (default: minioadmin/minioadmin)
