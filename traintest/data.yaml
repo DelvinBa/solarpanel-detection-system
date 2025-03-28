@@ -1,18 +1,9 @@
-# YOLO dataset configuration for Solar Panel Detection
-
-# Path to dataset root
-path: SateliteData
-
-# Train/val/test splits
-train: train/images
-val: val/images
-test: test/images
-
-# Class names
 names:
   0: solar_panel
   1: solar_array
   2: roof_array
-
-# Number of classes
-nc: 3 
+nc: 3
+path: C:\Users\ghara\Learning Hub\DataOps-Materials\sources\AutomaticSolarPanelDetection\02\traintest\SateliteData
+test: test/images
+train: train/images
+val: val/images
