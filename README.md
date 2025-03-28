@@ -141,6 +141,39 @@ This command will start all necessary services:
 
 ## 🚀 Usage
 
+### Training YOLO Models with MLflow Integration
+
+We've integrated YOLO model training with MLflow for experiment tracking and model management. This allows you to:
+
+1. **Track Experiments**: Log parameters, metrics, and artifacts during training
+2. **Compare Models**: Easily compare different model configurations
+3. **Version Control**: Register and version trained models
+4. **Load for Inference**: Seamlessly load models for inference
+
+#### Training a YOLO Model
+
+To train a YOLO model with MLflow tracking:
+
+```bash
+# Basic training with default parameters
+python traintest/train_yolo.py
+
+# Custom training with specific parameters
+python traintest/train_yolo.py --model yolov8m.pt --epochs 50 --batch 16 --img_size 832
+```
+
+#### Running Inference with MLflow-tracked Models
+
+```bash
+# Using the latest model from the registry
+python traintest/predict_mlflow.py --image path/to/image.jpg
+
+# Using a specific MLflow run
+python traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
+```
+
+For more details on the MLflow integration, see the [MLflow YOLO Integration Documentation](docs/mlflow_yolo_integration.qmd).
+
 ### Running the Airflow DAG
 
 The YOLO detection pipeline runs automatically every 5 minutes through an Airflow DAG. The DAG:
@@ -184,12 +217,19 @@ MLflow can be used to track model performance, versions, and experiments:
 │   └── raw/                <- Original, immutable data
 ├── models/                 <- Trained and serialized models
 ├── notebooks/              <- Jupyter notebooks for exploration
+├── traintest/              <- YOLO model training and testing
+│   ├── train_yolo.py       <- MLflow-integrated YOLO training script
+│   ├── predict_mlflow.py   <- Prediction script using MLflow models
+│   ├── data.yaml           <- YOLO dataset configuration
+│   └── yolo_SolarPanel.ipynb <- Original YOLO training notebook
 ├── src/                    <- Source code
 │   ├── __init__.py         <- Makes src a Python module
 │   ├── config.py           <- Configuration settings
 │   ├── dataset.py          <- Dataset handling
 │   ├── features.py         <- Feature engineering
 │   └── modeling/           <- Model training and prediction
+├── docs/                   <- Documentation
+│   └── mlflow_yolo_integration.qmd <- MLflow integration documentation
 ├── requirements.txt        <- Python dependencies
 └── README.md               <- Project documentation
 ```
