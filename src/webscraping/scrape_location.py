@@ -2,6 +2,7 @@ import requests
 
 API_KEY = 'l7b26b9b8b79a045559cff48f83ad86324'
 
+
 def get_coordinates(verblijfsobject_id):
     """
     Fetches coordinates (EPSG:28992) for a given verblijfsobject ID from the Kadaster BAG API.
@@ -28,10 +29,11 @@ def get_coordinates(verblijfsobject_id):
         print(f"Request failed: {response.status_code}")
         return None
 
+
 # For testing when run standalone:
 if __name__ == "__main__":
     import pandas as pd
-    csv_path = f"data/interim/pid_vid_GM0153.csv"
+    csv_path = "data/interim/pid_vid_GM0153.csv"
     df_loaded = pd.read_csv(csv_path, dtype={"vid": str})
     print(df_loaded.head())
     first_vid = df_loaded.loc[0, "vid"]

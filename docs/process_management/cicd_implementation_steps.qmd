@@ -1,0 +1,177 @@
+---
+title: "CI/CD Implementation Guide"
+author: "Team"
+format: html
+toc: true
+number-sections: true
+---
+
+# Implementing GitLab CI/CD Pipeline
+
+This guide provides detailed, step-by-step instructions for implementing the CI/CD pipeline we've configured for the Automatic Solar Panel Detection project.
+
+## Prerequisites
+
+Before proceeding with the implementation, ensure you have:
+
+1. A GitLab account with appropriate permissions
+2. Basic understanding of Git and GitLab
+3. Access to deployment servers (for staging and production)
+4. Docker and Docker Compose installed on your local machine
+
+## Step 1: Clone the Repository
+
+First, clone the repository to your local machine:
+
+```bash
+git clone <repository-url>
+cd AutomaticSolarPanelDetection
+```
+
+## Step 2: Configure GitLab CI/CD Files
+
+We've already created the necessary files for CI/CD:
+
+1. `.gitlab-ci.yml` - Main CI/CD configuration file
+2. `.flake8` - Configuration for code quality checks
+3. `src/tests/` - Directory containing test files
+
+## Step 3: Configure GitLab CI/CD Variables
+
+For the pipeline to work correctly, you need to set up environment variables in GitLab:
+
+1. Go to your GitLab project
+2. Navigate to Settings > CI/CD
+3. Expand the Variables section
+4. Add the following variables:
+
+| Variable | Description | Type | Protection |
+|----------|-------------|------|------------|
+| `SSH_PRIVATE_KEY` | SSH key for deployment | File | Protected, Masked |
+| `SSH_KNOWN_HOSTS` | SSH known hosts content | Variable | Protected |
+| `STAGING_SERVER_USER` | Username for staging server | Variable | Protected |
+| `STAGING_SERVER_HOST` | Hostname/IP for staging server | Variable | Protected |
+| `PRODUCTION_SERVER_USER` | Username for production server | Variable | Protected |
+| `PRODUCTION_SERVER_HOST` | Hostname/IP for production server | Variable | Protected |
+
+![GitLab CI/CD Variables](https://docs.gitlab.com/ee/ci/variables/img/variables_section_v12_5.png)
+
+## Step 4: Generate SSH Keys for Deployment
+
+To securely deploy to your servers, you need to set up SSH keys:
+
+1. Generate an SSH key pair (if you don't already have one):
+   ```bash
+   ssh-keygen -t ed25519 -C "gitlab-ci-deployment"
+   ```
+
+2. Add the public key to the `~/.ssh/authorized_keys` file on your staging and production servers
+
+3. Set the private key as the `SSH_PRIVATE_KEY` variable in GitLab
+
+4. Generate the `SSH_KNOWN_HOSTS` content:
+   ```bash
+   ssh-keyscan -t rsa <staging-server-ip> <production-server-ip>
+   ```
+
+## Step 5: Prepare Deployment Servers
+
+On both staging and production servers:
+
+1. Create the deployment directory:
+   ```bash
+   sudo mkdir -p /opt/solar-panel-detection
+   sudo chown <user>:<group> /opt/solar-panel-detection
+   ```
+
+2. Install Docker and Docker Compose:
+   ```bash
+   # Install Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   
+   # Install Docker Compose
+   sudo curl -L "https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   sudo chmod +x /usr/local/bin/docker-compose
+   ```
+
+3. Create a docker-compose.yml file in the deployment directory:
+   ```bash
+   # Create the deployment file on the server
+   nano /opt/solar-panel-detection/docker-compose.yml
+   ```
+
+   Example docker-compose.yml (adjust as needed):
+   ```yaml
+   version: '3'
+   services:
+     app:
+       image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+       restart: always
+       ports:
+         - "8080:8080"
+       environment:
+         - ENVIRONMENT=production
+   ```
+
+## Step 6: Test the Pipeline Locally
+
+Before pushing to GitLab, you can test parts of the pipeline locally:
+
+1. Lint your code:
+   ```bash
+   pip install flake8
+   flake8 src/ --max-line-length=120
+   ```
+
+2. Run tests:
+   ```bash
+   pip install pytest
+   python -m pytest src/ -v
+   ```
+
+3. Build Docker image:
+   ```bash
+   docker build -t solar-panel-detection:local .
+   ```
+
+## Step 7: Push to GitLab
+
+Commit all changes and push to GitLab to trigger the pipeline:
+
+```bash
+git add .
+git commit -m "Configure CI/CD pipeline"
+git push origin main
+```
+
+## Step 8: Monitor the Pipeline
+
+1. Go to your GitLab project
+2. Navigate to CI/CD > Pipelines
+3. Monitor the progress of your pipeline
+
+![GitLab CI/CD Pipeline](https://docs.gitlab.com/ee/ci/img/pipelines_v13_6.png)
+
+## Step 9: Debug Common Issues
+
+If your pipeline fails, check these common issues:
+
+1. **Missing variables**: Ensure all required CI/CD variables are set
+2. **SSH issues**: Test SSH connections from your local machine
+3. **Docker issues**: Check Docker installation on servers
+4. **Test failures**: Fix code issues identified by tests
+
+## Step 10: Configure Pipeline Schedule (Optional)
+
+You can schedule periodic pipeline runs:
+
+1. Go to CI/CD > Schedules
+2. Click "New schedule"
+3. Configure schedule settings (e.g., run weekly)
+
+## Conclusion
+
+You have now successfully implemented the GitLab CI/CD pipeline for the Automatic Solar Panel Detection project. This pipeline automates testing, building, and deployment processes, ensuring code quality and efficient delivery.
+
+Remember to regularly review and update your CI/CD configuration as the project evolves. 

@@ -212,6 +212,52 @@ Key environment variables that can be configured:
 | MINIO_PORT | MinIO API port | 9000 |
 | MINIO_CONSOLE_PORT | MinIO Console port | 9001 |
 
+## 🔄 CI/CD Pipeline
+
+This project uses GitLab CI/CD for continuous integration and deployment. The pipeline consists of the following stages:
+
+### 1. Test Stage
+- Runs linting with flake8
+- Executes unit tests with pytest
+
+### 2. Build Stage
+- Builds Docker image using the project's Dockerfile
+- Pushes the image to GitLab Container Registry
+- Triggered on main branch and tags
+
+### 3. Deploy Stage
+- **Staging Environment**: Automatically deploys to staging when changes are pushed to main
+- **Production Environment**: Manual deployment triggered from tags
+
+### 4. Pages Stage
+- Renders project documentation using Quarto
+- Makes documentation available at GitLab Pages
+
+### Required GitLab CI/CD Variables
+
+For the pipeline to work properly, you need to set up the following CI/CD variables in your GitLab project:
+
+| Variable | Description |
+|----------|-------------|
+| `CI_REGISTRY_USER` | GitLab registry username (provided automatically) |
+| `CI_REGISTRY_PASSWORD` | GitLab registry password (provided automatically) |
+| `CI_REGISTRY` | GitLab registry URL (provided automatically) |
+| `SSH_PRIVATE_KEY` | SSH private key for deployment |
+| `SSH_KNOWN_HOSTS` | SSH known hosts file content |
+| `STAGING_SERVER_USER` | Username for staging server |
+| `STAGING_SERVER_HOST` | Hostname/IP for staging server |
+| `PRODUCTION_SERVER_USER` | Username for production server |
+| `PRODUCTION_SERVER_HOST` | Hostname/IP for production server |
+
+### Setting Up CI/CD Variables
+
+1. Go to your GitLab project
+2. Navigate to Settings > CI/CD
+3. Expand the Variables section
+4. Add the required variables (mark SSH keys and passwords as protected and masked)
+
+![CI/CD Pipeline](https://docs.gitlab.com/ee/ci/img/cicd_pipeline_graph_simple_v13_6.png)
+
 ## 🧹 Cleanup
 
 To stop and remove all containers:

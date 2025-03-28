@@ -1,0 +1,133 @@
+---
+title: "Using GitLab CI/CD"
+author: "Team"
+format: html
+toc: true
+number-sections: true
+---
+
+# Quick Guide: Using GitLab CI/CD Pipeline
+
+This guide provides a quick overview of how to use the GitLab CI/CD pipeline we've set up for the Automatic Solar Panel Detection project.
+
+## How to Run the CI/CD Pipeline
+
+### Automatic Triggers
+
+The GitLab CI/CD pipeline automatically runs when:
+
+1. You push changes to the `main` branch
+2. You create and push a tag
+3. You open or update a merge request
+
+### Manual Testing Before Pushing
+
+Before pushing your changes to trigger the pipeline, you can test locally:
+
+1. **Using Docker Compose**:
+   ```bash
+   docker-compose -f docker-compose.test.yml up
+   ```
+
+2. **Using the test_ci.py script**:
+   ```bash
+   python test_ci.py
+   ```
+
+3. **Running tests manually**:
+   ```bash
+   pip install pytest flake8
+   flake8 src/ --max-line-length=120
+   python -m pytest src/ -v
+   ```
+
+## Understanding Pipeline Results
+
+### Pipeline Status
+
+You can check the status of your pipeline in GitLab:
+
+1. Go to CI/CD > Pipelines
+2. Look for your branch or commit in the list
+3. Check the status icon:
+   - Green ✓: All jobs passed
+   - Red ✗: One or more jobs failed
+   - Yellow clock: Pipeline is running
+
+### Debugging Failed Jobs
+
+If a job fails:
+
+1. Click on the failed pipeline
+2. Click on the failed job
+3. Check the job logs for error messages
+4. Fix the issues in your local repository
+5. Push the changes to trigger a new pipeline run
+
+## Common Pipeline Issues and Solutions
+
+### Test Failures
+
+**Issue**: Tests are failing in the pipeline
+
+**Solution**:
+1. Check the test logs for specific failures
+2. Run the tests locally using `python -m pytest src/ -v`
+3. Fix the failing tests
+4. Verify locally before pushing again
+
+### Linting Errors
+
+**Issue**: Flake8 is reporting code style issues
+
+**Solution**:
+1. Run flake8 locally: `flake8 src/ --max-line-length=120`
+2. Fix the reported issues, such as:
+   - Add missing newlines at the end of files
+   - Remove trailing whitespace
+   - Fix indentation
+   - Remove unused imports
+3. Verify locally before pushing again
+
+### Docker Build Failures
+
+**Issue**: Docker image build fails
+
+**Solution**:
+1. Check if you can build the Docker image locally: `docker build -t solar-panel-detection:local .`
+2. Check for syntax errors in your Dockerfile
+3. Ensure all required files are committed
+4. Verify dependencies are correctly specified
+
+### Deployment Issues
+
+**Issue**: Deployment to staging or production fails
+
+**Solution**:
+1. Check the SSH configuration in GitLab CI/CD variables
+2. Verify the deployment server is accessible
+3. Check if the required directories exist on the server
+4. Test the deployment commands manually on the server
+
+## Best Practices
+
+1. **Always run tests locally** before pushing changes
+2. **Keep commits small and focused** to make debugging easier
+3. **Review pipeline results** for every push
+4. **Fix failures promptly** to avoid blocking other team members
+5. **Add tests** for new features and bug fixes
+6. **Update documentation** when making significant changes
+
+## Adding New Tests
+
+To add new tests to the pipeline:
+
+1. Create test files in the `src/tests/` directory
+2. Follow the naming convention: `test_*.py`
+3. Use pytest fixtures and parameterization when appropriate
+4. Run the tests locally to verify they work
+5. Push the changes to trigger the pipeline
+
+## Conclusion
+
+The GitLab CI/CD pipeline helps ensure code quality and automated deployment. By following this guide, you can effectively use the pipeline to maintain high standards in your development process. 

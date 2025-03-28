@@ -1,0 +1,264 @@
+---
+title: "CI/CD Pipeline"
+author: "Team"
+format: html
+toc: true
+number-sections: true
+---
+
+# CI/CD Pipeline Setup for Solar Panel Detection Project
+
+This document outlines our approach to Continuous Integration and Continuous Deployment (CI/CD) for the Automatic Solar Panel Detection project. We'll cover the rationale behind our choices, the configuration details, and step-by-step instructions for setting up the pipeline.
+
+## What is CI/CD? {#what-is-cicd}
+
+Continuous Integration and Continuous Deployment (CI/CD) is a method to frequently deliver apps to customers by introducing automation into the stages of app development. The main concepts attributed to CI/CD are continuous integration, continuous delivery, and continuous deployment.
+
+- **Continuous Integration (CI)**: Developers merge their changes back to the main branch as often as possible. The developer's changes are validated by creating a build and running automated tests against the build.
+- **Continuous Delivery (CD)**: An extension of continuous integration to make sure that new changes can be released to customers quickly in a sustainable way.
+- **Continuous Deployment**: Every change that passes all stages of your production pipeline is released to your customers. There's no human intervention, and only a failed test will prevent a new change to be deployed to production.
+
+## Why GitLab CI/CD? {#why-gitlab}
+
+For our project, we chose **GitLab CI/CD** for the following reasons:
+
+1. **Integrated Solution**: GitLab provides an all-in-one solution for source code management, CI/CD, and issue tracking, reducing the need for additional tools.
+
+2. **Docker Integration**: GitLab CI/CD has robust Docker integration, which works well with our containerized application architecture.
+
+3. **Pipeline as Code**: With GitLab, we define our pipeline in a `.gitlab-ci.yml` file that lives with our code, providing versioning and change tracking for our deployment process.
+
+4. **Environments**: GitLab's environment feature helps us manage deployments to different environments (staging, production) and track what version is deployed where.
+
+5. **Artifacts**: GitLab makes it easy to pass build artifacts between stages, which is useful for our ML model deployment process.
+
+## CI/CD Pipeline Components {#pipeline-components}
+
+Our CI/CD pipeline consists of four main stages:
+
+### 1. Test Stage {#test-stage}
+
+The test stage ensures code quality through:
+
+- **Linting**: Checking code style and potential issues
+- **Unit Testing**: Testing individual components
+- **Integration Testing**: Testing component interactions
+
+### 2. Build Stage {#build-stage}
+
+The build stage creates deployable artifacts:
+
+- **Docker Image**: Packaging our application
+- **Push to Registry**: Making images available for deployment
+
+### 3. Deploy Stage {#deploy-stage}
+
+The deploy stage manages deployment to different environments:
+
+- **Staging**: Automatic deployment for testing
+- **Production**: Manual deployment for controlled releases
+
+### 4. Pages Stage {#pages-stage}
+
+The pages stage publishes documentation:
+
+- **Quarto Rendering**: Converting our Quarto documents to HTML
+- **Publication**: Making documentation available via GitLab Pages
+
+## Code Quality Tools Comparison {#code-quality-tools}
+
+We selected Flake8 for linting our Python code after comparing several alternatives:
+
+| Tool | Pros | Cons | Decision Rationale |
+|------|------|------|-------------------|
+| **Flake8** | - Combines PyFlakes, pycodestyle, and McCabe<br>- Fast execution<br>- Highly configurable<br>- Well-established in Python community | - Less comprehensive than some alternatives<br>- Doesn't auto-fix issues | **SELECTED**<br>- Good balance between speed and functionality<br>- Easy integration with GitLab CI |
+| Pylint | - Very comprehensive checks<br>- Detailed reports<br>- Highly configurable | - Slow execution<br>- Sometimes too strict<br>- Can produce false positives | Not selected due to slower performance and potentially excessive strictness |
+| Black | - Auto-formats code<br>- Minimal configuration needed<br>- Consistent formatting | - Not a linter (only formats)<br>- Limited configuration options<br>- Opinionated style | Considered as a complementary tool, but not as our primary quality check |
+| Ruff | - Very fast (Rust-based)<br>- Compatible with Flake8 rules<br>- Can auto-fix some issues | - Relatively new<br>- Less established ecosystem | Promising but avoided due to its relative newness |
+
+## CI/CD Pipeline Configuration {#pipeline-configuration}
+
+### GitLab CI/CD Configuration File (.gitlab-ci.yml) {#gitlab-ci-yml}
+
+Our pipeline is defined in the `.gitlab-ci.yml` file at the root of our repository. It includes all the stages, jobs, and configurations needed for our CI/CD process.
+
+```yaml
+stages:
+  - test
+  - build
+  - deploy
+  - pages
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+
+# Test stage jobs
+test:
+  stage: test
+  image: python:3.9
+  before_script:
+    - pip install -r requirements.txt
+    - pip install pytest flake8
+  script:
+    - flake8 src/ --max-line-length=120
+    - python -m pytest src/
+
+# Build stage jobs
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+  only:
+    - main
+    - tags
+
+# Deploy stage jobs
+deploy_staging:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $STAGING_SERVER_USER@$STAGING_SERVER_HOST "cd /path/to/deployment && docker-compose pull && docker-compose up -d"
+  environment:
+    name: staging
+  only:
+    - main
+
+deploy_production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST "cd /path/to/deployment && docker-compose pull && docker-compose up -d"
+  environment:
+    name: production
+  only:
+    - tags
+  when: manual
+
+# Pages stage jobs
+pages:
+  stage: pages
+  image: ghcr.io/quarto-dev/quarto-full:latest
+  before_script:
+    - tlmgr option repository http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/tlnet-final
+    - tlmgr update --self --verify-repo=none
+    - tlmgr install beamer caption soul koma-script --verify-repo=none
+    - apt-get update && apt-get install -y librsvg2-bin
+  script:
+    - quarto render . --output-dir public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+```
+
+## Step-by-Step Implementation Guide {#implementation-guide}
+
+### Step 1: Create .gitlab-ci.yml File {#step1}
+
+The first step is to create a `.gitlab-ci.yml` file at the root of your repository:
+
+1. Create a new file named `.gitlab-ci.yml`
+2. Copy the configuration example from the previous section
+3. Adjust paths, commands, and options as needed for your specific project
+
+### Step 2: Set Up GitLab CI/CD Variables {#step2}
+
+For the pipeline to work properly, set up these variables in GitLab:
+
+1. Go to your GitLab project
+2. Navigate to Settings > CI/CD
+3. Expand the Variables section
+4. Add the following variables:
+   - `SSH_PRIVATE_KEY` (protected, masked): SSH key for deployment
+   - `SSH_KNOWN_HOSTS` (protected): SSH known hosts content
+   - `STAGING_SERVER_USER`: Username for staging server
+   - `STAGING_SERVER_HOST`: Hostname/IP for staging server
+   - `PRODUCTION_SERVER_USER`: Username for production server
+   - `PRODUCTION_SERVER_HOST`: Hostname/IP for production server
+
+### Step 3: Set Up Test Environment {#step3}
+
+To enable the test stage, ensure you have the proper test setup:
+
+1. Install testing frameworks:
+   ```bash
+   pip install pytest flake8
+   ```
+
+2. Create a `tests` directory in your project
+3. Add test files following the pytest naming convention (`test_*.py`)
+
+### Step 4: Configure Flake8 {#step4}
+
+Create a `.flake8` configuration file to customize the linting rules:
+
+```ini
+[flake8]
+max-line-length = 120
+exclude = .git,__pycache__,docs/,build/,dist/
+ignore = E203, W503
+```
+
+### Step 5: Configure Docker Build {#step5}
+
+Ensure your `Dockerfile` is properly set up:
+
+1. Review your existing `Dockerfile`
+2. Make sure it includes all necessary dependencies
+3. Consider multi-stage builds for efficiency
+
+### Step 6: Set Up Deployment Environment {#step6}
+
+Prepare your staging and production servers:
+
+1. Set up SSH keys for authentication
+2. Create the deployment directory structure
+3. Install Docker and Docker Compose on the servers
+4. Create a `docker-compose.yml` file for deployment
+
+## Monitoring and Troubleshooting {#monitoring}
+
+### Monitoring Pipeline Execution {#monitoring-execution}
+
+1. Navigate to your GitLab project's CI/CD > Pipelines section
+2. Check the status of your pipeline runs
+3. Click on a pipeline to see detailed information about each job
+
+### Common Issues and Solutions {#common-issues}
+
+| Issue | Possible Cause | Solution |
+|-------|---------------|----------|
+| Test failures | Code quality issues or broken tests | Review test output and fix identified issues |
+| Build failures | Missing dependencies or configuration issues | Check build logs and update Dockerfile accordingly |
+| Deployment failures | SSH connection issues or server problems | Verify SSH keys and server configuration |
+| Pages build failures | Missing dependencies or rendering issues | Check Quarto dependencies and fix document errors |
+
+## Conclusion {#conclusion}
+
+This CI/CD pipeline provides our team with an automated workflow for testing, building, and deploying our Automatic Solar Panel Detection application. By following this approach, we ensure consistent quality, reduce manual errors, and speed up our delivery process.
+
+Remember that CI/CD is an evolving practice. We should regularly review and update our pipeline based on feedback and changing requirements. 

@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 120
+exclude = 
+    .git,
+    __pycache__,
+    docs/,
+    build/,
+    dist/,
+    venv/,
+    .vscode/,
+    .dvc/,
+    .quarto/
+ignore = 
+    # W503: Line break occurred before a binary operator (this is actually preferred in PEP 8)
+    W503,
+    # E203: Whitespace before ':' (conflicts with Black)
+    E203 
