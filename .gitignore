@@ -180,3 +180,6 @@ logs/
 pgadmin-data/
 airflow_logs.txt
 traintest/labels/
+traintest/SateliteData/
+mlruns/
+mlflow.db
