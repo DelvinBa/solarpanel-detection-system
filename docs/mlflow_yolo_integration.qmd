@@ -1,0 +1,161 @@
+---
+title: "MLflow Integration for YOLO Solar Panel Detection"
+author: "DataOps Team"
+date: last-modified
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    theme: cosmo
+execute:
+  eval: false
+---
+
+# YOLO Solar Panel Detection with MLflow
+
+This document describes the integration of YOLO object detection models with MLflow for tracking experiments, storing artifacts, and managing model versions for the Solar Panel Detection project.
+
+## Overview
+
+The YOLO (You Only Look Once) model is used to detect solar panels in satellite imagery. We've integrated this with MLflow to:
+
+1. Track training parameters and metrics
+2. Version control model artifacts
+3. Simplify model deployment
+4. Enable experiment comparisons
+
+## System Architecture
+
+```mermaid
+graph TD
+    A[Training Data] --> B[YOLO Training Script]
+    B --> C[MLflow Tracking Server]
+    C --> D[MLflow Model Registry]
+    D --> E[Inference/Prediction]
+    C --> F[Metrics & Artifacts]
+```
+
+## Implementation Details
+
+### MLflow Integration
+
+MLflow is used to track:
+
+- **Parameters**: YOLO model type, epochs, batch size, image size, etc.
+- **Metrics**: mAP50, mAP50-95, precision, recall, loss values
+- **Artifacts**: Model weights, confusion matrices, PR curves
+- **Model Registry**: Version control of trained models
+
+### Training Process
+
+The training process has been encapsulated in a Python script (`train_yolo.py`) that handles:
+
+1. Setting up MLflow tracking
+2. Loading and preprocessing the dataset
+3. Training the YOLO model
+4. Logging parameters, metrics, and artifacts to MLflow
+5. Registering the best model in MLflow's model registry
+
+```python
+# Example of starting a training run
+python traintest/train_yolo.py --data_dir SateliteData --model yolov8n.pt --epochs 50 --batch 16 --img_size 832
+```
+
+### Inference Process
+
+The prediction script (`predict_mlflow.py`) can:
+
+1. Load models directly from MLflow's model registry
+2. Use the model for inference on new images
+3. Visualize and save detection results
+
+```python
+# Example of running inference with the latest model from the registry
+python traintest/predict_mlflow.py --image path/to/image.jpg
+```
+
+## Key Components
+
+### Data Configuration
+
+The `data.yaml` file defines the dataset structure:
+
+```yaml
+# Path to dataset root
+path: SateliteData
+
+# Train/val/test splits
+train: train/images
+val: val/images
+test: test/images
+
+# Class names
+names:
+  0: solar_panel
+  1: solar_array
+  2: roof_array
+
+# Number of classes
+nc: 3
+```
+
+### Training Script
+
+The training script (`train_yolo.py`) handles:
+
+- MLflow experiment setup
+- YOLO model initialization and training
+- Logging metrics, parameters, and artifacts
+- Model registration
+
+### Prediction Script
+
+The prediction script (`predict_mlflow.py`) allows:
+
+- Loading models from MLflow
+- Running inference on new images
+- Visualizing and saving results
+
+## Best Practices
+
+1. **Experiment Naming**: Use consistent naming conventions for experiments
+2. **Model Versioning**: Register important models with semantic versions
+3. **Artifact Management**: Store important artifacts like confusion matrices
+4. **Parameter Tracking**: Log all relevant hyperparameters
+
+## How to Use
+
+### Training a New Model
+
+```bash
+# Basic training with default parameters
+python traintest/train_yolo.py
+
+# Custom training
+python traintest/train_yolo.py --model yolov8m.pt --epochs 100 --batch 8
+```
+
+### Making Predictions
+
+```bash
+# Using the latest model from registry
+python traintest/predict_mlflow.py --image path/to/image.jpg
+
+# Using a specific MLflow run
+python traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
+
+# Using a local model file
+python traintest/predict_mlflow.py --image path/to/image.jpg --local_model path/to/model.pt
+```
+
+### Viewing Results in MLflow UI
+
+Access the MLflow UI at: http://localhost:5000
+
+## Future Improvements
+
+1. Integration with Airflow for scheduled training
+2. A/B testing framework for model comparison
+3. Automated model promotion based on performance metrics
+4. Integration with deployment pipelines 

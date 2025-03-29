@@ -180,3 +180,7 @@ logs/
 pgadmin-data/
 airflow_logs.txt
 traintest/labels/
+traintest/SateliteData/
+mlruns/
+mlflow.db
+solar_panel_detection/yolo_run_*
