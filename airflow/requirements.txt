@@ -1,8 +1,0 @@
-apache-airflow==2.7.3
-minio==7.2.3
-opencv-python
-ultralytics==8.1.32
-torch==2.2.0
-torchvision==0.17.0
-sqlalchemy<2.0
-psycopg2-binary==2.9.9
