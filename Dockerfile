@@ -19,7 +19,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 1000 -r requirements.txt || \
     (pip install --no-cache-dir --timeout 1000 torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-     pip install --no-cache-dir --timeout 1000 -r requirements.txt)
+    pip install --no-cache-dir --timeout 1000 -r requirements.txt)
 
 # Final stage
 FROM apache/airflow:2.10.5
@@ -37,6 +37,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/config /opt/airflow/plugins \
     && chown -R airflow:root /opt/airflow \
     && chmod -R 775 /opt/airflow
+
+# Fix venv ownership so airflow can modify packages if needed
+RUN chown -R airflow:root /opt/venv
 
 # Switch back to airflow user
 USER airflow
