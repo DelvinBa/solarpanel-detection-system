@@ -7,18 +7,30 @@ stages:
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_HOST: tcp://docker:2375
   IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
   PYTHON_VERSION: "3.9"
 
-# Lint and test Python code
-test:
-  stage: test
+# Common Docker-in-Docker configuration
+.default_dind: &default_dind
   image: docker:20.10.16
   services:
     - docker:20.10.16-dind
   variables:
     DOCKER_HOST: tcp://docker:2375
+
+# Common SSH configuration for deploy jobs
+.default_ssh: &default_ssh
+  before_script:
+    - apk add --no-cache docker-compose openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+test:
+  stage: test
+  extends: .default_dind
   before_script:
     - apk add --no-cache docker-compose
     - docker info
@@ -26,8 +38,11 @@ test:
     - echo "Running tests with docker-compose.test.yml"
     - docker-compose -f docker-compose.test.yml up --build --exit-code-from test
     - echo "Tests completed"
+    # Generate a simple JUnit report
     - mkdir -p test-results
-    - echo '<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.1"><testcase classname="pytest" name="basic" time="0.1"></testcase></testsuite></testsuites>' > test-results/junit.xml
+    - echo '<?xml version="1.0" encoding="utf-8"?>\
+<testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.1">\
+<testcase classname="pytest" name="basic" time="0.1"></testcase></testsuite></testsuites>' > test-results/junit.xml
   artifacts:
     when: always
     paths:
@@ -36,69 +51,51 @@ test:
       junit: test-results/junit.xml
     expire_in: 1 week
 
-# Build Docker image
 build:
   stage: build
-  image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
+  extends: .default_dind
   variables:
-    DOCKER_TLS_CERTDIR: ""
     IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker-compose -f docker-compose.build.yml up
-    # No need for docker tag command since we're using the correct image name in docker-compose.build.yml
+    - docker-compose -f docker-compose.build.yml up --build
   after_script:
     - docker logout $CI_REGISTRY
 
-# Deploy to staging environment
+# A deploy template that both staging and production will use.
+.deploy_template: &deploy_template
+  extends:
+    - .default_dind
+    - .default_ssh
+  script:
+    - echo "Deploying to $ENVIRONMENT environment..."
+    - scp docker-compose.deploy.yml $SERVER_USER@$SERVER_HOST:/opt/solar-panel-detection/
+    - ssh $SERVER_USER@$SERVER_HOST "cd /opt/solar-panel-detection && \
+export IMAGE_NAME=$IMAGE_NAME && export ENVIRONMENT=$ENVIRONMENT && \
+docker-compose -f docker-compose.deploy.yml pull && \
+docker-compose -f docker-compose.deploy.yml up -d"
+
 deploy_staging:
   stage: deploy
-  image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
   variables:
-    DOCKER_HOST: tcp://docker:2375
     ENVIRONMENT: staging
-  before_script:
-    - apk add --no-cache docker-compose openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - echo "Deploying to staging environment..."
-    - scp docker-compose.deploy.yml $STAGING_SERVER_USER@$STAGING_SERVER_HOST:/opt/solar-panel-detection/
-    - ssh $STAGING_SERVER_USER@$STAGING_SERVER_HOST "cd /opt/solar-panel-detection && export IMAGE_NAME=$IMAGE_NAME && export ENVIRONMENT=staging && docker-compose -f docker-compose.deploy.yml pull && docker-compose -f docker-compose.deploy.yml up -d"
+    SERVER_USER: $STAGING_SERVER_USER
+    SERVER_HOST: $STAGING_SERVER_HOST
+  <<: *deploy_template
   environment:
     name: staging
     url: http://${STAGING_SERVER_HOST}:8080
   only:
     - main
 
-# Deploy to production environment
 deploy_production:
   stage: deploy
-  image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
   variables:
-    DOCKER_HOST: tcp://docker:2375
     ENVIRONMENT: production
-  before_script:
-    - apk add --no-cache docker-compose openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - echo "Deploying to production environment..."
-    - scp docker-compose.deploy.yml $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST:/opt/solar-panel-detection/
-    - ssh $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST "cd /opt/solar-panel-detection && export IMAGE_NAME=$IMAGE_NAME && export ENVIRONMENT=production && docker-compose -f docker-compose.deploy.yml pull && docker-compose -f docker-compose.deploy.yml up -d"
+    SERVER_USER: $PRODUCTION_SERVER_USER
+    SERVER_HOST: $PRODUCTION_SERVER_HOST
+  <<: *deploy_template
   environment:
     name: production
     url: http://${PRODUCTION_SERVER_HOST}:8080
@@ -106,7 +103,6 @@ deploy_production:
     - tags
   when: manual
 
-# Generate and publish project documentation
 pages:
   stage: pages
   image: ghcr.io/quarto-dev/quarto-full:latest
