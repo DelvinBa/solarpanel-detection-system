@@ -27,8 +27,7 @@ FROM apache/airflow:2.10.5
 USER root
 
 # Copy system dependencies from builder
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libglib-2.0.so* /usr/lib/x86_64-linux-gnu/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libglib-2.0.so* /usr/lib/x86_64-linux-gnu/
+#COPY --from=builder /usr/lib/x86_64-linux-gnu/libglib-2.0.so* /usr/lib/x86_64-linux-gnu/
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv

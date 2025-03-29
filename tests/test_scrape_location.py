@@ -10,7 +10,7 @@ import os
 # Add the src directory to the path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from webscraping.scrape_location import get_coordinates
+from webscraping_pipeline.scrape_location import get_coordinates
 
 
 class TestScrapeLocation(unittest.TestCase):
