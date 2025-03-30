@@ -95,121 +95,166 @@ Given our **limited resources** and **small team**, a **monolithic, end-to-end p
 
 
 
-## 4.2 Technology Selection and Rationale
+# 4.2 Technology Selection and Rationale
+
+In this project, we aim to build a **Machine Learning Object Detection System** with **end-to-end automated pipelines**. Based on our solution strategy, which is based on our functional requirements, we can deduce the following type of technologies needed:
+
+1. **Training Pipeline**  
+   - Storing data/images  
+   - Versioning data/images
+   - Processing data/images
+   - Training a model  
+   - Tracking the model (validation, deployment, feedback)  
+
+2. **Inference Pipeline**  
+   - Loading trained models  
+   - Performing real-time predictions  
+   - Storing the inference results  
+   - Serving predictions via an API
+
+To support these pipelines, the following **technology categories** have been identified:
+
+- **Programming Language + API Framework**  
+  Core development environment for building, training, and serving ML models.
+
+- **Object Storage**  
+  Required for handling large volumes of image data (or any unstructured data).
+
+- **Data Versioning Tool**  
+  Ensures reproducibility and manageability of large datasets across multiple training iterations.
+
+- **Storage for Result Data**  
+  Structured or semi-structured storage for logs, metadata, or inference outputs.
+
+- **ML Experiment Tracking Tool**  
+  Logs hyperparameters, metrics, and artifacts to maintain a clear record of experiments and model versions. Can deploy models.
+
+- **Cloud Platform**  
+  Provides infrastructure services (compute, storage, networking).
+
+- **Orchestration / Automation Tool**  
+  Coordinates the entire end-to-end workflow (data ingestion, model training, inference jobs).
 
 
-## Overview  
-In this project, we are building an **object detection pipeline** using **YOLOv8** to analyze satellite images of houses and detect solar panels. The pipeline is designed to be **scalable, automated, and efficient**, leveraging **Apache Airflow** for orchestration, **MinIO** as the storage backend, and **PostgreSQL** as the database. Since the focus is on model training and inference, **ETL/ELT and data cleaning are not yet included**, but these may be added in the future for data transformation and preprocessing.  
 
-## Workflow Structure  
-- **MinIO** acts as an **object storage system** to store raw images and model outputs.  
-- **Apache Airflow** is used to **orchestrate** the workflow, triggering model training and inference jobs.  
-- **MLflow** is used for experiment **tracking, model versioning**, and logging performance metrics to ensure reproducibility and model management.
-- **YOLOv8** is the chosen object detection model for identifying solar panels on roofs.  
-- **PostgreSQL** is the database for storing metadata, job statuses, and model performance metrics.  
+## 4.2.1 Comparing Technologies
 
-Each of these components was carefully selected based on **scalability, ease of integration, and performance**. The table below provides a comparison of the chosen tools and their alternatives.  
+### Programming Language + API Framework
+
+For choosing the programming language, we can keep the comparison short. Basically, we have the following requirements for choosing the programming language:
+- needs to have libraries, that can process data easily
+- needs to have libraries, that can train ML-Models (object detection) easily
+- needs to be well adopted and have big community, so we as newbies, can research if we are stuck with problems
+- needs to be compatible, with the work already made by selin and her knowledge
+- needs to have an API Framework
 
 
-### Selected Components and Alternatives Comparison
+Libraries and ability to build data pipelines: 
+- Based on multiple sources, Python, R and Julia are the most used programming languages, which are widely used for data science purposes and that lets you build pipelines [datacamp](https://www.datacamp.com/blog/top-programming-languages-for-data-scientists-in-2022), [Rice Engineering department of Computer Science](https://csweb.rice.edu/academics/graduate-programs/online-mds/blog/programming-languages-for-data-science), [maryville education](https://online.maryville.edu/online-masters-degrees/data-science/resources/programming-languages-for-data-scientists/). Also a lot of them list sql, but sql is only a query language for relational datbases, and there you cannot actually build pipelines. 
 
-Below is a concise overview of our key components, the chosen tools, and alternatives considered.
+Compatibility with our environment: 
+- The scripts that selin provided to us, are python scripts, and selin, is most familiar with python.
 
----
+Community:
+- Based on the yearly [Stackoverflow survey from 2024](https://survey.stackoverflow.co/2024/technology#1-programming-scripting-and-markup-languages), 51% of the respondents uses python, 4.3% use R and only 1.1% use Julia.
 
-### 1. Storage
-**Chosen Tool:** **MinIO**  
-**Why Chosen?**  
-- S3-compatible API for easy future migration  
-- Lightweight, self-hosted option (on-prem or cloud)  
-- Scalable for large datasets  
-- Open-source and cost-effective  
 
-**Alternatives:** **AWS S3**, **Azure Blob**, **GCS**  
-**Why Not?**  
-- Managed services can become expensive at scale  
-- Possible vendor lock-in  
-- Reduced flexibility in self-hosted environments  
+API-Framework availability:
+- All of the languages also have api frameworks e.g. [FastAPI(Python)](https://fastapi.tiangolo.com/), [RestReserve(R)](https://restrserve.org/), [Genie(Julia)](https://genieframework.com/)
 
----
 
-### 2. Orchestration
-**Chosen Tool:** **Apache Airflow**  
-**Why Chosen?**  
-- Widely adopted for workflow orchestration  
-- Scalable, with distributed execution support  
-- Large community and plugin ecosystem  
-- Integrates smoothly with Python-based ML pipelines  
+##### Choice
 
-**Alternatives:** **Prefect**, **Dagster**, **Kubeflow**  
-**Why Not?**  
-- **Prefect**: Simpler but lacks advanced DAG capabilities  
-- **Dagster**: Great for data pipelines but less mature for ML workflows  
-- **Kubeflow**: Powerful but complex to set up and maintain  
+Based on the research, we probably technically could develop this system using all of the languages and framework. 
 
----
+But in case of ease of implementation, we think python is best since it has the biggest community. Also, we will still need to choose other technologies, like Experiment tracking, Databases, etc. Therefore we need to choose a well adopted and wide spread programming language, that has well used libraries to use also the other technologies in combination with our chosen programming language.
 
-### 3. Model Training
-**Chosen Tool:** **YOLOv8**  
-**Why Chosen?**  
-- Cutting-edge for real-time detection  
-- Pre-trained models shorten training time  
-- Optimized for edge/cloud deployment  
-- Fast inference suited for real-time applications  
+Also Selin and both developers, are well known in python, and it makes it easier to work with selin. Also in the end, she needs to adapt our work for the future purposes of the NOWATT Project.
 
-**Alternatives:** **Detectron2**, **MMDetection**, **EfficientDet**  
-**Why Not?**  
-- **Detectron2**: Highly customizable but has a steep learning curve  
-- **MMDetection**: Powerful but requires extensive configuration  
-- **EfficientDet**: More accurate but slower for real-time detection  
-
----
-
-### 4. Database
-**Chosen Tool:** **PostgreSQL**  
-**Why Chosen?**  
-- Native integration with Airflow  
-- **PostGIS** extension for geospatial analysis  
-- ACID-compliant, open-source, no licensing costs  
-- JSON support for flexible schemas  
-- Scalable for both logging and analytics  
-
-**Alternatives:** **SQL Server**, **MongoDB**, **TimescaleDB**  
-**Why Not?**  
-- **SQL Server**: Licensing costs and higher resource needs  
-- **MongoDB**: Less mature geospatial features, weaker Airflow integration  
-- **TimescaleDB**: Specialized for time-series data only  
+### Object Storage
+This section follows our **data-driven, step-by-step methodology** for selecting the most suitable object storage solution. Given that our project involves managing a significant volume of image data and potentially large inference outputs, **object storage** is a critical component.
 
 ---
 
-### 5. Data Versioning
-**Chosen Tool:** **DVC** (Data Version Control)  
-**Why Chosen?**  
-- Integrates with Git for large file/data tracking  
-- Ensures reproducible ML experiments by versioning datasets  
-- Lightweight, open-source, and well-documented  
-- Works seamlessly with MinIO and cloud storage  
+### 1. Define Requirements
 
-**Alternatives:** **Git LFS**, **Git-annex**  
-**Why Not?**  
-- **Git LFS**: Can become expensive or inconvenient for very large datasets  
-- **Git-annex**: Flexible but not as straightforward for ML pipelines  
+1. **Scalability & Capacity**  
+   - Must handle potentially **large volumes** of images (satellite or otherwise).  
+   - Should scale seamlessly as our dataset grows (especially if we anticipate adding data continuously).
+
+2. **S3 Compatibility**  
+   - Prefer an **S3-compatible interface** for easy integration with common ML tools and data workflows.
+
+3. **Cost-Effectiveness**  
+   - Since this is a **10-week project** with limited resources, we need to be mindful of budget and TCO (Total Cost of Ownership).
+
+4. **Ease of Integration**  
+   - Should integrate smoothly with the **Python** ecosystem, as well as any data versioning or orchestration tools.
+
+5. **Reliability & Availability**  
+   - Must ensure data durability (backups, replication) and consistent uptime for training/inference pipelines.
 
 ---
 
-### 6. Experiment Tracking
-**Chosen Tool:** **MLflow**  
-**Why Chosen?**  
-- Popular, open-source tool for logging experiments and artifacts  
-- Easy to integrate with Python ML pipelines  
-- Provides model packaging and registry features  
-- Centralizes metrics, parameters, and artifacts  
+### 2. Establish Evaluation Criteria
 
-**Alternatives:** **Weights & Biases**, **Neptune.ai**, **Azure ML**  
-**Why Not?**  
-- **Weights & Biases** / **Neptune.ai**: SaaS offerings can introduce additional cost and potential vendor lock-in  
-- **Azure ML**: Very powerful but overkill for smaller teams; heavier Azure-specific setup requirements  
-- MLflow offers a balanced mix of simplicity, flexibility, and no extra licensing fees
+| **Criterion**           | **Description**                                                   |
+|-------------------------|-------------------------------------------------------------------|
+| **Scalability**         | Ability to handle increasing data volumes without major overhead  |
+| **Performance**         | Read/write speeds, especially with large file sizes              |
+| **S3 Compatibility**    | Support for S3 APIs or compatible SDKs                            |
+| **Integration**         | Ease of connecting with ML frameworks, data versioning tools      |
+| **Cost**                | Pricing model (storage, egress), licensing fees if any            |
+| **Security & Compliance** | Built-in encryption, IAM, access control, compliance certifications |
+| **Maintainability**     | Overhead for setup, updates, and ongoing management               |
+| **References / Adoption** | Community usage, official documentation, case studies           |
+
+---
+
+### 3. Candidate Solutions
+
+Below is a brief comparison of **four** commonly considered object storage options:
+
+| **Object Storage** | **Scalability**            | **Performance**                         | **S3 Compatibility**        | **Integration**                           | **Cost**                         | **Security & Compliance**                                    | **Maintainability**              | **References / Adoption**                     |
+|--------------------|----------------------------|-----------------------------------------|-----------------------------|-------------------------------------------|-----------------------------------|----------------------------------------------------------------|----------------------------------|----------------------------------------------|
+| **MinIO**          | Horizontally scalable; can run on-prem or cloud | Generally good; comparable to AWS S3 for typical workloads | S3-compatible API           | Strong Python support, easy to connect with ML libraries | Self-hosted (infrastructure costs), no license fees | Supports encryption, IAM, compliance depends on self-setup  | Medium (requires some DevOps)    | Popular in self-managed & hybrid deployments  |
+| **AWS S3**         | Virtually unlimited scale, managed by AWS       | High performance, global availability | Native S3                     | Excellent Python SDK (boto3), wide tool integration       | Pay-as-you-go; can become costly for high egress    | Full compliance suite (e.g., SOC, HIPAA) with managed IAM    | Low (fully managed)              | Industry-standard, widely adopted             |
+| **Azure Blob**     | Scales with Azure platform                      | Similar to S3 in performance           | Not S3 by default, but can use bridging tools | Good integration with Azure ML, Python SDK        | Pay-as-you-go; egress fees apply                    | Offers enterprise compliance, robust role-based access       | Low (fully managed, if on Azure) | Popular in Microsoft-centric ecosystems       |
+| **GCP Storage**    | Scales with Google Cloud                        | High performance, multi-region support | XML/JSON API, not S3 out-of-the-box, but partial compatibility | Python SDK (google-cloud-storage)                | Pay-as-you-go; egress fees apply                    | Comprehensive security features, compliance certifications    | Low (fully managed, if on GCP)   | Popular in Google Cloud ML solutions          |
+
+---
+
+### 4. Gathering Data from Sources
+
+1. **Official Documentation**  
+   - Examined feature guides and reference architectures from MinIO, AWS, Azure, and GCP.  
+2. **Community Benchmarks & Case Studies**  
+   - Looked at performance benchmarks published by open-source communities (e.g., comparing MinIO vs. AWS S3 for throughput).  
+   - Reviewed real-world case studies indicating the ease of integration with Python-based ML flows.
+3. **Industry & Team Constraints**  
+   - Considered the **team’s DevOps expertise** and budget constraints for a short 10-week project.
+
+---
+
+### 5. Preliminary Observations
+
+- **MinIO** is **self-hosted** and works well for on-prem or hybrid environments, providing **S3 compatibility** at minimal licensing cost. However, it requires **more DevOps effort** than fully managed cloud services.
+- **AWS S3**, **Azure Blob**, and **GCP Storage** are **managed services** offering high reliability and easy integration, but **cost** can escalate with large-scale storage or high egress traffic.
+- Given we have a **10-week timeline**, choosing a fully managed solution might reduce operational overhead—**unless** there is an existing on-prem requirement or preference.
+
+In the **next section**, we will **finalize** our object storage selection and outline the rationale behind that choice. We’ll also consider the **project’s specific constraints** (e.g., budget, DevOps capabilities, data growth projections) to arrive at a balanced, practical decision.
+### Data Versioning Tool
+
+### Storage for Result Data
+
+### ML Expriment Tracking Tool
+
+### Cloud Platform
+
+### Orchestration / Automation Tool
+
+
+## 4.2.2 Selected Technologies
 
 # 5. Building Block View
 
