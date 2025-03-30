@@ -176,20 +176,20 @@ To train a YOLO model with MLflow tracking:
 
 ```bash
 # Basic training with default parameters
-python traintest/train_yolo.py
+python src/traintest/train_yolo.py
 
 # Custom training with specific parameters
-python traintest/train_yolo.py --model yolov8m.pt --epochs 50 --batch 16 --img_size 832
+python src/traintest/train_yolo.py --model yolov8m.pt --epochs 50 --batch 16 --img_size 832
 ```
 
 #### Running Inference with MLflow-tracked Models
 
 ```bash
 # Using the latest model from the registry
-python traintest/predict_mlflow.py --image path/to/image.jpg
+python src/traintest/predict_mlflow.py --image path/to/image.jpg
 
 # Using a specific MLflow run
-python traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
+python src/traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
 ```
 
 For more details on the MLflow integration, see the [MLflow YOLO Integration Documentation](docs/mlflow_yolo_integration.qmd).
@@ -237,7 +237,7 @@ MLflow can be used to track model performance, versions, and experiments:
 │   └── raw/                <- Original, immutable data
 ├── models/                 <- Trained and serialized models
 ├── notebooks/              <- Jupyter notebooks for exploration
-├── traintest/              <- YOLO model training and testing
+├── src/traintest/          <- YOLO model training and testing
 │   ├── train_yolo.py       <- MLflow-integrated YOLO training script
 │   ├── predict_mlflow.py   <- Prediction script using MLflow models
 │   ├── data.yaml           <- YOLO dataset configuration
@@ -383,45 +383,3 @@ This project is licensed under the terms of the [LICENSE](LICENSE) file included
 ## Project Structure
 
 ```
-.
-├── airflow/
-│   ├── dags/              # Airflow DAG files
-│   ├── Dockerfile         # Custom Airflow image
-│   └── start-airflow.sh   # Airflow startup script
-├── mlflow/                # MLflow configuration
-├── docker-compose.yml     # Docker Compose configuration
-└── .env                   # Environment variables (create from .env.example)
-```
-
-## Troubleshooting
-
-If you encounter any issues:
-
-1. Make sure all required ports are available
-2. Check if Docker is running properly
-3. Try cleaning up Docker resources:
-   ```bash
-   docker-compose down -v
-   docker system prune -f
-   ```
-4. Restart Docker Desktop (Windows/macOS) or Docker service (Linux)
-5. Check the logs:
-   ```bash
-   docker-compose logs -f
-   ```
-
-## Development
-
-To modify the project:
-
-1. Edit the DAG files in `airflow/dags/`
-2. Rebuild the containers:
-   ```bash
-   docker-compose build
-   docker-compose up -d
-   ```
-
-## License
-
-[Your License Here]
-
