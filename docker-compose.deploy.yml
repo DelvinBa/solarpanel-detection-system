@@ -1,37 +1,63 @@
 version: '3'
 
 services:
-  app:
-    image: ${IMAGE_NAME:-solar-panel-detection:latest}
-    restart: always
-    ports:
-      - "${APP_PORT:-8080}:8080"
-    environment:
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-      - PYTHONPATH=/app
-    volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./mlflow:/app/mlflow
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+  # Temporarily commenting out app service until we have the image
+  # app:
+  #   image: ${IMAGE_NAME:-solar-panel-detection:latest}
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - PYTHONPATH=/app
+  #     - DB_HOST=${DB_HOST}
+  #     - DB_PORT=${DB_PORT}
+  #     - DB_USER=${DB_USER}
+  #     - DB_PASSWORD=${DB_PASSWORD}
+  #     - DB_NAME=${DB_NAME}
+  #     - MINIO_HOST=minio
+  #     - MINIO_PORT=${MINIO_PORT}
+  #     - MLFLOW_HOST=mlflow
+  #     - MLFLOW_PORT=${MLFLOW_PORT}
+  #   volumes:
+  #     - ./data:/app/data
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_healthy
+  #     mlflow:
+  #       condition: service_healthy
 
-  # MinIO for object storage
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    ports:
+      - "${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   minio:
     image: minio/minio:latest
-    restart: always
     ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./minio_data:/data
+      - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -39,37 +65,42 @@ services:
       timeout: 20s
       retries: 3
 
-  # MLflow for experiment tracking
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
-    restart: always
     ports:
-      - "${MLFLOW_PORT:-5000}:5000"
+      - "${MLFLOW_PORT}:5000"
     environment:
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minioadmin}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
-    command: mlflow server --host 0.0.0.0 --backend-store-uri postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-mlflow} --default-artifact-root s3://mlflow/ --serve-artifacts
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://${MLFLOW_BUCKET_NAME}/
+      - GUNICORN_CMD_ARGS="--bind=0.0.0.0:5000"
+    command: >
+      bash -c "
+        pip install psycopg2-binary &&
+        mlflow server 
+        --host 0.0.0.0 
+        --port 5000
+        --default-artifact-root s3://${MLFLOW_BUCKET_NAME}/
+        --backend-store-uri ${MLFLOW_TRACKING_URI}
+      "
     depends_on:
-      - minio
-      - postgres
-
-  # PostgreSQL for metadata
-  postgres:
-    image: postgres:15
-    restart: always
-    environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-mlflow}
-    volumes:
-      - ./db_data:/var/lib/postgresql/data
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DB_USER:-postgres}"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
-      timeout: 30s
+      timeout: 10s
       retries: 3
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  minio_data:
 
 networks:
   default:
-    driver: bridge 
+    name: ${COMPOSE_PROJECT_NAME}_network 

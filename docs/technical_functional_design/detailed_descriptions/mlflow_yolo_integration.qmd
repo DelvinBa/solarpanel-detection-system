@@ -59,7 +59,7 @@ The training process has been encapsulated in a Python script (`train_yolo.py`) 
 
 ```python
 # Example of starting a training run
-python traintest/train_yolo.py --data_dir SateliteData --model yolov8n.pt --epochs 50 --batch 16 --img_size 832
+python src/traintest/train_yolo.py --data_dir SateliteData --model yolov8n.pt --epochs 50 --batch 16 --img_size 832
 ```
 
 ### Inference Process
@@ -72,7 +72,7 @@ The prediction script (`predict_mlflow.py`) can:
 
 ```python
 # Example of running inference with the latest model from the registry
-python traintest/predict_mlflow.py --image path/to/image.jpg
+python src/traintest/predict_mlflow.py --image path/to/image.jpg
 ```
 
 ## Key Components
@@ -130,23 +130,23 @@ The prediction script (`predict_mlflow.py`) allows:
 
 ```bash
 # Basic training with default parameters
-python traintest/train_yolo.py
+python src/traintest/train_yolo.py
 
 # Custom training
-python traintest/train_yolo.py --model yolov8m.pt --epochs 100 --batch 8
+python src/traintest/train_yolo.py --model yolov8m.pt --epochs 100 --batch 8
 ```
 
 ### Making Predictions
 
 ```bash
 # Using the latest model from registry
-python traintest/predict_mlflow.py --image path/to/image.jpg
+python src/traintest/predict_mlflow.py --image path/to/image.jpg
 
 # Using a specific MLflow run
-python traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
+python src/traintest/predict_mlflow.py --image path/to/image.jpg --run_id <mlflow_run_id>
 
 # Using a local model file
-python traintest/predict_mlflow.py --image path/to/image.jpg --local_model path/to/model.pt
+python src/traintest/predict_mlflow.py --image path/to/image.jpg --local_model path/to/model.pt
 ```
 
 ### Viewing Results in MLflow UI
