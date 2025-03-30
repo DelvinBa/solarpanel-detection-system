@@ -179,8 +179,8 @@ src/mnistdata/
 logs/
 pgadmin-data/
 airflow_logs.txt
-traintest/labels/
-traintest/SateliteData/
+src/traintest/labels/
+src/traintest/SateliteData/
 mlruns/
 mlflow.db
 solar_panel_detection/yolo_run_*

@@ -33,7 +33,7 @@ def setup_mlflow():
         logger.error(f"Error setting up MLflow: {str(e)}")
         raise
 
-def create_data_yaml(base_dir, output_path="traintest/data.yaml"):
+def create_data_yaml(base_dir, output_path="src/traintest/data.yaml"):
     """Create or update the data.yaml file for YOLO training"""
     data_config = {
         'path': base_dir,

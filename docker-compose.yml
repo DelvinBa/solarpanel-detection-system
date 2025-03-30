@@ -294,9 +294,10 @@ services:
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
       - MLFLOW_S3_ENDPOINT_URL=http://mlflow_minio:${MINIO_PORT}
       - MLFLOW_S3_IGNORE_TLS=true
+      - MLFLOW_LOGGING_LEVEL=${MLFLOW_LOGGING_LEVEL}
     command: >
       mlflow server
-      --backend-store-uri postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}
+      --backend-store-uri postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       --host 0.0.0.0
       --serve-artifacts
       --artifacts-destination mlflow_minio://${MLFLOW_BUCKET_NAME}
