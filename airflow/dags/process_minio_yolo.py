@@ -1,3 +1,17 @@
+import subprocess
+import sys
+
+# Install minio package if not already installed
+try:
+    import minio
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "minio==7.2.3"])
+# Install opencv-python package if not already installed
+try:
+    import cv2
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python==4.11.0.86"])
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
@@ -7,6 +21,7 @@ import cv2
 import os
 import logging
 from ultralytics import YOLO
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

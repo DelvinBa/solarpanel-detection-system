@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,6 +20,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    minio==7.2.3 \
+    opencv-python==4.11.0.86 \
+    ultralytics==8.1.32
 
 # Final stage: use the base Airflow image
 FROM apache/airflow:2.10.5
