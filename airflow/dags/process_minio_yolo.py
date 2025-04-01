@@ -1,16 +1,22 @@
 import subprocess
 import sys
 
-# Install minio package if not already installed
 try:
     import minio
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "minio==7.2.3"])
-# Install opencv-python package if not already installed
+
+# Try to remove opencv-python and install opencv-python-headless instead
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "opencv-python"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.11.0.86"])
+except Exception as e:
+    print(f"Error switching to opencv-python-headless: {e}")
+
 try:
     import cv2
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python==4.11.0.86"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.11.0.86"])
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
