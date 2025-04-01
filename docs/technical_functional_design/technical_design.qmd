@@ -54,10 +54,9 @@ The **Solar Panel Detection System** is responsible for **analyzing house images
   - **Data Storage for Results**: Currently an Excel file (owned by Selin) that stores detection outputs alongside other project data (e.g., energy label calculations). A move to a more robust database solution is under consideration.
 
 
-
 # 4. Solution Strategy
 
-The **primary objective** of this project is to implement a **fully automated, monolithic Data and ML Pipeline** for detecting solar panels in aerial or satellite images and associating these detections with Dutch house IDs. We utilize a **simplified machine learning pipeline**—outlined below—focusing on:
+The **primary objective** of this project is to implement a **fully automated, monolithic Data and ML Pipeline** for detecting solar panels in aerial or satellite images and associating these detections with Dutch house IDs. We draw on a simplified ML pipeline—focusing on:
 
 1. **Data Ingestion / Versioning**  
 2. **Data Preprocessing**  
@@ -66,32 +65,133 @@ The **primary objective** of this project is to implement a **fully automated, m
 5. **Model Validation**  
 6. **Model Feedback**
 
-Additionally, there are **three major processes** within this monolithic solution:
+Given our **limited resources** and **small team**, we choose a **monolithic approach** to keep the architecture straightforward. Each stage of the pipeline (Ingestion, Preprocessing, Training, etc.) is **modular** enough to be refined or replaced without large-scale re-engineering.
 
-1. **Training Pipeline** – Implements the typical ML flow (data ingestion, preprocessing, training, etc.).  
-2. **Dutch Houses Scraping Process** – Known as the Webscraping System in [Chapter 3: System Scope and Context](#), effectively a sub-part of **Data Ingestion** for addresses and house imagery.  
-3. **Inference Pipeline** – Applies the trained model to new images to detect solar panels and link them to Dutch house IDs.
+We also break down the project into **three core processes**:
 
-> **Note:** Pipeline diagram adapted from *DataOps Specialization (2024-2025), Deployment and Operations* by Deepak Tunuguntla and Pieter Zeilstra (Saxion University of Applied Sciences).  
-> **Data Validation**, **Model Tuning**, and **Model Analysis** are **out of scope** for this project.
+1. **Continuous Training Pipeline** – Establishes the typical ML lifecycle to keep the model up-to-date.  
+2. **Dutch Houses Scraping Process** – Automates retrieval of Dutch house imagery from public sources.  
+3. **Inference/Detection Process** – Uses the trained model to detect solar panels in newly scraped images and link them to BAG IDs.
 
 ![ML Pipeline](images/ml-pipeline.png)
 
-Given our **limited resources** and **small team**, a **monolithic, end-to-end pipeline** is easier to maintain than multiple microservices. However, each phase (Ingestion, Preprocessing, Training, etc.) remains **modular** so individual steps can be improved or replaced without re-architecting the entire system.
+> **Note**: Some ML phases—like **Data Validation**, **Model Tuning**, and **Model Analysis**—are out of scope. We focus on ensuring a functional end-to-end pipeline rather than a fully optimized or deeply validated model.
 
-- **Automation & Reproducibility**: We automate execution using a scheduling/orchestration mechanism (e.g., Apache Airflow).  
-- **Accuracy & Domain Adaptation**: We compare multiple object detection models (e.g., YOLO, Faster R-CNN). Model tuning lies outside our scope, but we aim for a robust baseline since our training data (Germany) differs from inference data (Netherlands).  
-- **House ID Linking**: A subsystem (still part of the monolith) queries Kadaster/PDOK APIs to map detection results to specific addresses. This data is then linked to the final data storage, enabling future analyses and integrations.
+## Key Design Considerations
+
+- **Automation & Reproducibility**  
+  We use an orchestration tool (e.g., **Apache Airflow**) to automatically schedule and run all pipelines, from scraping to inference.  
+
+- **Accuracy & Domain Adaptation**  
+  The training data (Germany) differs from where inferences are run (the Netherlands). We plan to compare multiple detection frameworks (e.g., **YOLO**, **Faster R-CNN**). Thorough hyperparameter tuning is **out of scope**, but we aim for a robust initial baseline.  
+
+- **House ID Linking**  
+  An internal subsystem queries **Kadaster** and **PDOK** APIs to map detected solar panels to Dutch addresses (BAG IDs). Results can then be merged into datasets used for energy label calculations.
+
 
 ---
 
-## 4.1 Addressing Key Business Goals
+## 4.1 Detailed Approach
 
-| **Business Goal**                                     | **Scenario**                                                                                                                                          | **Solution Approach**                                                                                                                                                         |
-|--------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Goal 1: Automation of Solar Panel Detection**        | - New aerial or satellite images should **auto-trigger** the pipeline. <br/> - **Minimal** manual intervention once data is available.                 | - **Monolithic end-to-end pipeline** with Airflow (or similar) scheduling. <br/> - Potentially **containerized steps** for consistency. <br/> - **Version control** for reproducibility.                            |
-| **Goal 2: Solar Panel Detection Accuracy**             | - Model must reliably detect panels in **Dutch** aerial imagery. <br/> - Evaluate and compare **object detection frameworks** for baseline accuracy.   | - **Experiment with multiple ML models** (e.g., YOLO, Faster R-CNN). <br/> - Validate performance on reference data from both Germany and the Netherlands.                                                         |
-| **Goal 3: House ID Detection / Kadaster Integration**  | - Post-detection, **associate** results with Dutch addresses. <br/> - Integrate with Kadaster’s coordinate-based data.                                 | - **Coordinate-based matching** of bounding boxes to house polygons. <br/> - **Automated** data retrieval via public APIs (Kadaster, PDOK) and storing results in final data storage.                              |
+### 4.1.1 Continuous Training Pipeline
+
+This pipeline manages how we train (and occasionally re-train) the solar panel detection model using labeled satellite images from Germany.
+
+#### Data Ingestion & Versioning
+- **What We Do**  
+  - Store new training data (images + bounding box labels) in an object store (e.g., **MinIO**).  
+  - Consider optionally using **DVC** or **Git LFS** for versioning.  
+- **Rationale**  
+  - Ensures reproducibility of training runs.  
+  - Straightforward for the team to upload new data without manual overhead.
+
+#### Data Validation
+- **Out of Scope**  
+  - We are not performing extensive checks or anomaly detection.  
+  - We assume provided data is valid and labeled correctly.
+
+#### Data Preprocessing
+- **What We Do**  
+  - Minimal or no preprocessing; possibly convert images to a uniform format (e.g., resizing, channel standardization).  
+- **Technologies**  
+  - **OpenCV** or **Pillow** for image transformations as needed.
+
+#### Model Training
+- **What We Do**  
+  - Train an **object detection** model (likely **YOLOv5** or **Faster R-CNN**) on the labeled German data.  
+  - Track basic performance metrics (e.g., accuracy, mAP) using **MLflow**.  
+- **Focus**  
+  - Achieve a baseline model suitable for adaptation to Dutch imagery later.  
+  - Full hyperparameter tuning is **not** included.
+
+#### Model Validation
+- **Minimal**  
+  - We do log key metrics (precision, recall, mAP) on a small validation set.  
+  - No strict pass/fail criteria for automatic gating; we simply observe if training is successful.
+
+#### Model Deployment
+- **What We Do**  
+  - Save the trained model artifacts (weights, config) back to **MinIO** with a version label.  
+  - The model is then considered the “latest” for the inference pipeline to load.
+
+#### Model Feedback
+- **What We Do**  
+  - Manual checks by developers or subject-matter experts.  
+  - No automated feedback loop or active learning in place at this time.
+
+
+---
+
+### 4.1.2 Dutch Houses Scraping Process
+
+This process retrieves **real-world images** from Dutch addresses, serving as the inference dataset source.
+
+- **Inputs**  
+  - User or automated trigger specifying a **city name** (e.g., “Enschede”).  
+- **Steps**  
+  1. **Address List**: Fetch addresses from **CommonDataFactory**.  
+  2. **Coordinate Lookup**: For each address, query **Kadaster** (Bag Viewer) to obtain X/Y coordinates and BAG ID.  
+  3. **Download Aerial Images**: Use **PDOK Luchtfoto WMS** to get top-down house images.  
+  4. **Storage**: Save each image in **MinIO**, tagged with its BAG ID.  
+- **Technologies**  
+  - **Python Scripts** (the “webscraper”), possibly run by **Apache Airflow**.  
+  - **Requests** library for API calls; data stored in **MinIO**.  
+- **Outcome**  
+  - A curated set of Dutch house images (with associated metadata) ready for the inference/detection process.
+
+---
+
+### 4.1.3 Inference/Detection Process
+
+Once we have **Dutch house images** and a **trained model**, we apply the detection logic to identify solar panels and associate them with BAG IDs.
+
+#### Gathering New Images
+- **What We Do**  
+  - Monitor **MinIO** for newly scraped images.  
+  - Triggered periodically (e.g., daily) by **Airflow** or on-demand by the user.
+
+#### Model Loading
+- **What We Do**  
+  - Retrieve the “latest” model artifact from **MinIO**.  
+  - Load weights and config into a **YOLO** or **Faster R-CNN** inference setup.
+
+#### Running Detection
+- **Steps**  
+  1. Perform solar panel detection on each image.  
+  2. Extract bounding boxes and confidence scores.  
+  3. Merge detection outcomes with existing house metadata (BAG ID).
+- **Technologies**  
+  - **PyTorch** or **TensorFlow**-based detection libraries.  
+  - **MLflow** can be used to log basic inference metrics if desired.
+
+#### Storing Results
+- **What We Do**  
+  - Write final detection results (house ID, presence of solar panel, confidence) to a **PostgreSQL** table or a CSV.  
+  - These results can then be integrated with other datasets (e.g., energy labels).
+- **Model Feedback**  
+  - Largely manual. If users find inaccuracies, they inform developers for potential retraining or improvements.
+
+---
 
 
 
@@ -243,6 +343,8 @@ Below is a brief comparison of **four** commonly considered object storage optio
 - Given we have a **10-week timeline**, choosing a fully managed solution might reduce operational overhead—**unless** there is an existing on-prem requirement or preference.
 
 In the **next section**, we will **finalize** our object storage selection and outline the rationale behind that choice. We’ll also consider the **project’s specific constraints** (e.g., budget, DevOps capabilities, data growth projections) to arrive at a balanced, practical decision.
+
+
 ### Data Versioning Tool
 
 ### Storage for Result Data
