@@ -61,4 +61,4 @@ def run_pipeline(gemeentecode="GM0153", limit=10, demo=False):
 
 if __name__ == "__main__":
     # Run the pipeline (set demo=True to process only one record for quick testing)
-    run_pipeline(gemeentecode="GM0153", limit=20, demo=False)
+    run_pipeline(gemeentecode="GM0153", limit=50, demo=False)

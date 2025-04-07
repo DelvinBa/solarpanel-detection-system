@@ -213,7 +213,7 @@ services:
   s3:
     restart: always
     image: minio/minio
-    container_name: mlflow_minio
+    container_name: minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -298,6 +298,24 @@ services:
       - backend
     depends_on:
       - postgres
+
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi_service
+    ports:
+      - "8001:8000"  
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
 
 volumes:
   postgres-db-volume:
