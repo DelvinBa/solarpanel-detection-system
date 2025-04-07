@@ -247,7 +247,7 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
-      - MLFLOW_S3_ENDPOINT_URL=http://mlflow_minio:${MINIO_PORT}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:${MINIO_PORT}
       - MLFLOW_S3_IGNORE_TLS=true
       - MLFLOW_LOGGING_LEVEL=${MLFLOW_LOGGING_LEVEL}
     command: >
@@ -255,7 +255,7 @@ services:
       --backend-store-uri postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       --host 0.0.0.0
       --serve-artifacts
-      --artifacts-destination mlflow_minio://${MLFLOW_BUCKET_NAME}
+      --artifacts-destination minio://${MLFLOW_BUCKET_NAME}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
       interval: 30s

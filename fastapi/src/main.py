@@ -1,21 +1,25 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
+from .schemas.detection import DetectionRequest, DetectionResponse, DetectionResult
 
 app = FastAPI(title="Solar Panel Detection API")
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+@app.post("/detect", response_model=DetectionResponse)
+async def detect(request: DetectionRequest):
+    # Example logic: loop over IDs, build results
+    results = []
+    for detection_id in request.ids:
+        # You'd call your real detection pipeline here
+        dummy_image = "base64-encoded-image"
+        results.append(
+            DetectionResult(
+                id=detection_id,
+                detection_image=dummy_image,
+                message="Detection successful"
+            )
+        )
 
-@app.post("/detect")
-async def detect(file: UploadFile = File(...)):
-    # Placeholder: Call your detection logic here.
-    # For now, we simply return the filename.
-    if not file:
-        raise HTTPException(status_code=400, detail="No file uploaded")
-    
-    # Here you would integrate your detection logic
-    # For example: result = detect_solar_panel(await file.read())
-    result = {"filename": file.filename, "message": "Detection triggered (placeholder)"}
-    
-    return JSONResponse(content=result)
+    return DetectionResponse(results=results)
