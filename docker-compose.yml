@@ -213,7 +213,7 @@ services:
   s3:
     restart: always
     image: minio/minio
-    container_name: mlflow_minio
+    container_name: minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -247,7 +247,7 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
-      - MLFLOW_S3_ENDPOINT_URL=http://mlflow_minio:${MINIO_PORT}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:${MINIO_PORT}
       - MLFLOW_S3_IGNORE_TLS=true
       - MLFLOW_LOGGING_LEVEL=${MLFLOW_LOGGING_LEVEL}
     command: >
@@ -255,7 +255,7 @@ services:
       --backend-store-uri postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       --host 0.0.0.0
       --serve-artifacts
-      --artifacts-destination mlflow_minio://${MLFLOW_BUCKET_NAME}
+      --artifacts-destination minio://${MLFLOW_BUCKET_NAME}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
       interval: 30s
@@ -298,6 +298,30 @@ services:
       - backend
     depends_on:
       - postgres
+
+  fastapi_gateway:
+    build:
+      context: ./fastapi_gateway
+      dockerfile: Dockerfile
+    container_name: fastapi_gateway
+    ports:
+      - "8001:8000"  # Exposed on host:8001
+    depends_on:
+      - solarpanel_detection_system
+    networks:
+      - backend
+
+  solarpanel_detection_system:
+    build:
+      context: ./solarpanel_detection_system
+      dockerfile: Dockerfile
+    container_name: solarpanel_detection_system
+    ports:
+      - "8002:8000"  
+    networks:
+      - backend
+
+
 
 volumes:
   postgres-db-volume:
