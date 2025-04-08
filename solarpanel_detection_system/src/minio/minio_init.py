@@ -7,7 +7,7 @@ def get_minio_client():
     Returns a Minio client instance configured for your local setup.
     Adjust the endpoint, access key, and secret key as needed.
     """
-    endpoint = "localhost:9000"  # or "http://localhost:9000" if you prefer
+    endpoint = "minio:9000"  
     access_key = "minioadmin"
     secret_key = "minioadmin"
     secure = False

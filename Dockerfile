@@ -28,4 +28,4 @@ RUN mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/config /opt/airflo
 
 # Finally, switch back to airflow user and copy your DAGs/code
 USER airflow
-COPY --chown=airflow:root src/ /opt/airflow/dags/
+COPY --chown=airflow:root solarpanel_detection_system/ /opt/airflow/dags/

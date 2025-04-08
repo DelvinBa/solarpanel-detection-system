@@ -299,21 +299,27 @@ services:
     depends_on:
       - postgres
 
-  fastapi:
+  fastapi_gateway:
     build:
-      context: ./fastapi
+      context: ./fastapi_gateway
       dockerfile: Dockerfile
-    container_name: fastapi_service
+    container_name: fastapi_gateway
     ports:
-      - "8001:8000"  
+      - "8001:8000"  # Exposed on host:8001
+    depends_on:
+      - solarpanel_detection_system
     networks:
-      - frontend
       - backend
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+
+  solarpanel_detection_system:
+    build:
+      context: ./solarpanel_detection_system
+      dockerfile: Dockerfile
+    container_name: solarpanel_detection_system
+    ports:
+      - "8002:8000"  
+    networks:
+      - backend
 
 
 

@@ -1,10 +1,11 @@
 import pandas as pd
-from .scrape_house_ids import get_pids_and_vids
-from .scrape_location import get_coordinates
-from .scrape_images import get_aerial_image
-from src.minio.minio_utils import upload_image_to_minio, get_minio_client
+from .fetch_house_ids import get_pids_and_vids
+from .fetch_location import get_coordinates
+from .fetch_images import get_aerial_image
+from solarpanel_detection_system.src.minio.minio_utils import upload_image_to_minio, get_minio_client
+from solarpanel_detection_system.src.minio.minio_init import init_minio_buckets
 
-def run_pipeline(gemeentecode="GM0153", limit=10, demo=False):
+def get_images_by_citycode(gemeentecode="GM0153", limit=10, demo=False):
     """
     Runs the scraping pipeline:
       1. Fetch all house IDs (pid and vid) for a given gemeentecode.
@@ -16,15 +17,16 @@ def run_pipeline(gemeentecode="GM0153", limit=10, demo=False):
     :param limit: int, maximum number of records to process.
     :param demo: bool, if True, process only a single record (for demonstration).
     """
+    init_minio_buckets()
     # Step 1: Fetch house IDs and VIDs
     df_ids = get_pids_and_vids(gemeentecode)
     if demo:
         df_ids = df_ids.head(1)
     else:
         df_ids = df_ids.head(limit)
-    
     # Create a MinIO client and define the bucket name for inference images.
     minio_client = get_minio_client()
+    
     bucket_name = "inference-data"
     
     # We'll store images in the "inference_images/" prefix within the bucket.
@@ -61,4 +63,4 @@ def run_pipeline(gemeentecode="GM0153", limit=10, demo=False):
 
 if __name__ == "__main__":
     # Run the pipeline (set demo=True to process only one record for quick testing)
-    run_pipeline(gemeentecode="GM0153", limit=50, demo=False)
+    get_images_by_citycode(gemeentecode="GM0153", limit=50, demo=False)
