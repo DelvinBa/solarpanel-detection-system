@@ -1,5 +1,14 @@
 # Data
-/data/
+# Ignore everything in the data folder
+/data/*
+
+# But do NOT ignore .gitkeep files (or any other placeholder)
+!/data/.gitkeep
+
+# Repeat for each subfolder if needed
+!/data/interim/.gitkeep
+!/data/external/.gitkeep
+!/data/processed/.gitkeep
 
 # Mac OS-specific storage files
 .DS_Store
