@@ -1,30 +1,39 @@
 import mlflow
-import random
 import os
+import time
 
-# Set MLflow tracking URI to a local directory
-mlflow.set_tracking_uri("file:./mlruns")
+# Set the tracking URI to use the MLflow tracking server
+tracking_uri = "http://localhost:5001"
+print(f"Setting MLflow tracking URI: {tracking_uri}")
+mlflow.set_tracking_uri(tracking_uri)
 
-# Create or get an experiment
+# Create a new experiment
 experiment_name = "test_experiment"
-experiment_id = mlflow.set_experiment(experiment_name).experiment_id
-print(f"Using experiment '{experiment_name}' with ID: {experiment_id}")
+print(f"Creating experiment: {experiment_name}")
 
-# Start an MLflow run
-with mlflow.start_run() as run:
-    # Log parameters
-    mlflow.log_param("param1", 5)
-    mlflow.log_param("param2", "test")
+try:
+    # Try to get existing experiment
+    experiment = mlflow.get_experiment_by_name(experiment_name)
     
-    # Log metrics
-    mlflow.log_metric("accuracy", 0.85)
-    mlflow.log_metric("loss", 0.15)
+    if experiment:
+        print(f"Experiment already exists with ID: {experiment.experiment_id}")
+    else:
+        # Create the experiment
+        experiment_id = mlflow.create_experiment(experiment_name)
+        print(f"Created experiment with ID: {experiment_id}")
     
-    # Log a sequence of metrics
-    for i in range(10):
-        mlflow.log_metric("iteration_metric", random.random(), step=i)
-    
-    # Get the run ID for verification
-    run_id = run.info.run_id
-    print(f"MLflow run completed. Run ID: {run_id}")
-    print(f"View the run at http://localhost:5000/#/experiments/{experiment_id}/runs/{run_id}") 
+    # Start a run
+    with mlflow.start_run(experiment_id=experiment.experiment_id if experiment else experiment_id) as run:
+        run_id = run.info.run_id
+        print(f"Started run with ID: {run_id}")
+        
+        # Log a parameter
+        mlflow.log_param("param1", "value1")
+        
+        # Log a metric
+        mlflow.log_metric("metric1", 1.0)
+        
+        print("Run completed successfully")
+        
+except Exception as e:
+    print(f"Error: {str(e)}") 
