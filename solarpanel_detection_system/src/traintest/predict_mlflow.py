@@ -18,7 +18,7 @@ def setup_mlflow():
     """Configure MLflow tracking"""
     try:
         # Get MLflow configuration
-        mlflow_port = os.getenv("MLFLOW_PORT", "5000")
+        mlflow_port = os.getenv("MLFLOW_PORT", "5001")
         
         # Set up the tracking URI to use the MLflow tracking server
         tracking_uri = f"http://localhost:{mlflow_port}"
@@ -54,18 +54,30 @@ def load_model(model_uri=None, run_id=None, local_path=None):
     
     if model_uri:
         logger.info(f"Loading model from MLflow registry: {model_uri}")
-        model = mlflow.pytorch.load_model(model_uri)
-        # Convert to YOLO format if needed
-        # This might require additional steps depending on how the model was saved
-        return model
+        try:
+            # Try to load directly if it's a YOLO compatible model
+            yolo_model = mlflow.pytorch.load_model(model_uri)
+            return yolo_model
+        except Exception as e:
+            logger.warning(f"Failed to load as PyTorch model: {e}")
+            # Fall back to downloading artifacts and loading as YOLO model
+            client = mlflow.tracking.MlflowClient()
+            model_versions = client.search_model_versions(f"name='solar_panel_yolo'")
+            run_id = model_versions[0].run_id
+            return load_model(run_id=run_id)
     
     elif run_id:
         logger.info(f"Loading model from MLflow run: {run_id}")
-        model_path = mlflow.artifacts.download_artifacts(
-            run_id=run_id,
-            artifact_path="best_model/best.pt"
-        )
-        return YOLO(model_path)
+        try:
+            # Try to get best model from artifacts
+            model_path = mlflow.artifacts.download_artifacts(
+                run_id=run_id,
+                artifact_path="best_model/best.pt"
+            )
+            return YOLO(model_path)
+        except Exception as e:
+            logger.error(f"Failed to load model from run {run_id}: {e}")
+            raise
     
     elif local_path:
         logger.info(f"Loading model from local path: {local_path}")
@@ -147,8 +159,12 @@ def main():
     parser.add_argument("--run_id", type=str, help="MLflow run ID to load model from")
     parser.add_argument("--local_model", type=str, help="Path to local YOLO model file")
     parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")
-    parser.add_argument("--output_dir", type=str, default="predictions", help="Directory to save predictions")
+    parser.add_argument("--output_dir", type=str, default="reports/predictions", help="Directory to save predictions")
     args = parser.parse_args()
+    
+    # Setup output directory
+    output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', args.output_dir))
+    os.makedirs(output_dir, exist_ok=True)
     
     # Setup MLflow
     setup_mlflow()
@@ -164,14 +180,25 @@ def main():
         if model_uri:
             model = load_model(model_uri=model_uri)
         else:
-            raise ValueError("No model available in MLflow registry. Provide a run_id or local_model.")
+            # Try to find a model in the models directory
+            models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'models'))
+            if os.path.exists(models_dir):
+                # Look for best.pt in any subdirectory
+                model_files = list(Path(models_dir).glob('**/weights/best.pt'))
+                if model_files:
+                    logger.info(f"Loading most recent local model: {model_files[0]}")
+                    model = load_model(local_path=str(model_files[0]))
+                else:
+                    raise ValueError("No models found. Train a model first or provide a run_id or local_model.")
+            else:
+                raise ValueError("No model available in MLflow registry or locally. Train a model first.")
     
     # Run prediction
     results = predict_image(
         model=model,
         image_path=args.image,
         conf_threshold=args.conf,
-        save_dir=args.output_dir
+        save_dir=output_dir
     )
     
     # Print summary of detections
