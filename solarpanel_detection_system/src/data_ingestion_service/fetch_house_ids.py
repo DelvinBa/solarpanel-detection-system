@@ -31,6 +31,8 @@ def get_pids_and_vids(gemeentecode):
     # Clean the 'vid' field and enforce string type
     df['vid'] = df['vid'].apply(clean_vid).astype(str)
 
+    df['pid'] = df['pid'].astype(str)
+
     # Save to CSV in data/interim
     output_path = f"data/interim/pid_vid_{gemeentecode}.csv"
     df.to_csv(output_path, index=False)
