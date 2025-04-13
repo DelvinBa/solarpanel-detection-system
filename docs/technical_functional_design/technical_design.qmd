@@ -58,7 +58,7 @@ The **Solar Panel Detection System** is responsible for **analyzing house images
 
 The **primary objective** of this project is to implement a **fully automated, monolithic Data and ML Pipeline** for detecting solar panels in aerial or satellite images and associating these detections with Dutch house IDs. We draw on a simplified ML pipeline—focusing on:
 
-1. **Data Ingestion / Versioning**  
+1. **Data Ingestion**  
 2. **Data Preprocessing**  
 3. **Model Training**  
 4. **Model Deployment**  
