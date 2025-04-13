@@ -69,7 +69,7 @@ The **primary objective** of this project is to implement a **fully automated, m
 Additionally, there are **three major processes** within this monolithic solution:
 
 1. **Training Pipeline** – Implements the typical ML flow (data ingestion, preprocessing, training, etc.).  
-2. **Dutch Houses Scraping Process** – Known as the Webscraping System in [Chapter 3: System Scope and Context](#), effectively a sub-part of **Data Ingestion** for addresses and house imagery.  
+2. **Dutch Houses Ingestion Process** – Known as the Data Ingestion System in [Chapter 3: System Scope and Context](#), effectively a sub-part of **Data Ingestion** for addresses and house imagery.  
 3. **Inference Pipeline** – Applies the trained model to new images to detect solar panels and link them to Dutch house IDs.
 
 > **Note:** Pipeline diagram adapted from *DataOps Specialization (2024-2025), Deployment and Operations* by Deepak Tunuguntla and Pieter Zeilstra (Saxion University of Applied Sciences).  
@@ -246,14 +246,14 @@ Below, we focus on three key containers that make up our system: the **Solarpane
 
 The diagram below shows the **Solarpanel Detection Service** container broken down into three internal components (or pipelines). We’ve removed textual annotations on the relationships to keep the view concise. Each pipeline handles a specific part of the data flow:
 
-1. **Training Pipeline**  
+1. **Continous Training Pipeline**  
    This is the **primary pipeline** for continually training the model. Whenever new training data arrives, it runs the full training process, tracking performance and metadata in MLflow. It also deploys any newly trained model.
 
-2. **Inference Pipeline**  
+2. **Inference Process**  
    When new data (e.g., images) is uploaded, this pipeline uses the latest model to detect solar panels, then stores the results in PostgreSQL.
 
-3. **Webscraping Process**  
-   Since manually collecting Dutch aerial imagery is impractical, the Webscraping component automates data retrieval. After a user specifies a city, it fetches relevant housing addresses, their coordinates, and associated aerial images. Each house image is tied to a unique House ID, enabling the detection results to be merged with existing energy-related data.
+3. **Data Ingestion Process**  
+   Since manually collecting Dutch aerial imagery is impractical, the Data Ingestion component automates data retrieval. After a user specifies a city, it fetches relevant housing addresses, their coordinates, and associated aerial images. Each house image is tied to a unique House ID, enabling the detection results to be merged with existing energy-related data.
 
 The following diagram highlights these three pipelines within the Solarpanel Detection Service. For details about each pipeline’s runtime flow, see [Chapter 6](#runtime-view).
 
@@ -294,22 +294,22 @@ In other words, the DAG files serve as the **Airflow “recipe”** for orchestr
 
 # 6. Runtime View
 
-Below, we illustrate the three main pipelines within the **Solardetection Service** via dynamic runtime diagrams. Each pipeline corresponds to a distinct process (webscraping, training, and inference).  
+Below, we illustrate the three main pipelines within the **Solardetection Service** via dynamic runtime diagrams. Each pipeline corresponds to a distinct process (data ingestion, training, and inference).  
 
-## 6.1 Webscraping Process
+## 6.1 Data Ingestion Process
 
-![C4 dynamic diagram for scraping inference data](images/c4_dynamic_webscraping.svg)
+![C4 dynamic diagram for scraping inference data](images/c4_dynamic_ingestion.svg)
 
-The **Webscraping** process begins when **Nijhuis** provides a city name to the **Solardetection API**. The API delegates the request to the Webscraping component within the Solardetection Service, which then interacts with various external services:
+The **Data Ingestion** process begins when **Nijhuis** provides a city name to the **Solardetection API**. The API delegates the request to the Data Ingestion component within the Solardetection Service, which then interacts with various external services:
 
 1. **CommonDataFactory** – Provides a comprehensive list of addresses for the city.  
 2. **Bag Viewer Kadaster** – Translates each address into X,Y coordinates and returns a unique House ID.  
 3. **PDOK Luchtfoto WMS** – Retrieves aerial imagery for each address, using the provided coordinates.  
 
-As shown in the diagram, the Webscraping component stores retrieved images in **MinIO** (`S3-compatible API`). This ensures the images can be readily accessed by subsequent steps or other pipelines.
+As shown in the diagram, the Data Ingestion component stores retrieved images in **MinIO** (`S3-compatible API`). This ensures the images can be readily accessed by subsequent steps or other pipelines.
 
 **Optional Inference Trigger**  
-Once the webscraping process completes and the data is saved (in both the database and MinIO), you can **manually** initiate the **Inference Pipeline** (or have it triggered automatically if desired). This follow-up stage uses the newly gathered images and metadata to detect solar panels, as part of your broader data processing workflow.
+Once the Ingestion process completes and the data is saved (in both the database and MinIO), you can **manually** initiate the **Inference Pipeline** (or have it triggered automatically if desired). This follow-up stage uses the newly gathered images and metadata to detect solar panels, as part of your broader data processing workflow.
 
 
 ## 6.2 Training Pipeline
@@ -388,7 +388,7 @@ Risks:
 - Training data is different format/and location than inference data => model might perform bad
 
 Technical Debts:
-- To reach the goal to have an automated process for webscraping inference data(dutch housing images), it is hard in the last step, to get the bounding box of exactly one house! Unclear what offset for the boundingbox to use for houses in different size​. Maybe calculated by size of house?
+- To reach the goal to have an automated process for Data Ingestion, inference data(dutch housing images), it is hard in the last step, to get the bounding box of exactly one house! Unclear what offset for the boundingbox to use for houses in different size​. Maybe calculated by size of house?
 
 
 ---
