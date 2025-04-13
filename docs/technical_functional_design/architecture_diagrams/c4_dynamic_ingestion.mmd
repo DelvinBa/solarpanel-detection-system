@@ -7,27 +7,36 @@ System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns aerial images (WMS).")
 Person(nijhuis, "Nijhuis Bouw", "External user uploading city name and requesting data.")
 
 System_Boundary(system, "Solarpanel Detection System"){
-    %% The Solardetection Service container boundary
     Container(fastapi, "Solardetection API", "Python/FastAPI", "Handles incoming requests for webscraping.")
-    
-    ContainerDb(minio, "MinIO", "Object Storage", "Storage for images and model artifacts.")
-    
+
     Container_Boundary(sds, "Solardetection Service") {
         Component(training, "Training Pipeline", "Python", "Trains/updates the detection model using collected images.")
-        Component(webscraping, "Webscraping Process", "Python", "Part of the Solardetection Service container.")
-        Component(inference, "Inference Pipeline", "Python", "Performs solar panel detection on new images.")
+        Component(webscraping, "Data Ingestion Process", "Python", "Fetches dutch aerial housing images")
+        Component(inference, "Inference Process", "Python", "Performs solar panel detection on new images.")
     }
+
+    Container(dummy1, " ", " ", " ") 
+
+    ContainerDb(minio, "MinIO", "Object Storage", "Storage for images and model artifacts.")
 }
 
-%% Sequence of interactions
+
+UpdateElementStyle(dummy1, $bgColor="transparent", $borderColor="transparent", $fontColor="transparent")
+
+UpdateElementStyle(training, $bgColor="blue")
+UpdateElementStyle(webscraping, $bgColor="blue")
+UpdateElementStyle(inference, $bgColor="blue")
+
+
+
 Rel(nijhuis, fastapi, "1. Submits City Name", "HTTP/JSON")
 Rel(fastapi, webscraping, "2. Invokes Webscraping with City Name", "Internal call")
 Rel(webscraping, commondata, "3. Gets all addresses for City", "REST")
 Rel(webscraping, kadaster, "4. For each address, obtains X,Y and House ID", "REST")
 Rel(webscraping, pdok, "5. For each address, retrieves aerial images", "WebService(OGC)")
-Rel(webscraping, minio, "6. Stores retrieved images", "S3-compatible API")
+Rel(webscraping, minio, "6. Stores retrieved images and IDs", "S3-compatible API")
 
-%% Styling for clarity
+
 UpdateRelStyle(nijhuis, fastapi, $textColor="red", $lineColor="red", $offsetX="0", $offsetY="0")
 UpdateRelStyle(fastapi, webscraping, $textColor="green", $lineColor="green", $offsetX="-100", $offsetY="-50")
 UpdateRelStyle(webscraping, commondata, $textColor="blue", $lineColor="blue", $offsetY="-350", $offsetX="-200")
