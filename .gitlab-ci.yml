@@ -1,7 +1,7 @@
 stages:
   - test
   - build
-  #- deploy
+  - deploy
   - pages
 
 variables:
@@ -123,3 +123,17 @@ pages:
       - public
   only:
     - main
+
+deploy_to_ec2:
+  stage: deploy
+  only:
+    - main
+  script:
+    - echo "$EC2_SSH_KEY" > ec2_key
+    - chmod 600 ec2_key
+    - ssh -o StrictHostKeyChecking=no -i ec2_key $EC2_USER@$EC2_HOST "
+        cd /home/ubuntu/02 &&
+        git pull origin main &&
+        docker-compose down &&
+        docker-compose up -d
+      "

@@ -1,8 +1,9 @@
-# Git
+# Ignore Git directories
 .git
+.github
 .gitignore
 
-# Python
+# Ignore Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,6 +25,70 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Ignore virtual environments
+venv/
+ENV/
+env/
+
+# Ignore logs and databases
+*.log
+*.sqlite
+*.db
+logs/
+mlruns/
+mlartifacts/
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+
+# Ignore data and model files (these should be mounted or downloaded on demand)
+*.pt
+*.pth
+*.onnx
+*.npy
+*.h5
+*.hdf5
+*.bin
+data/
+models/
+minio_data/
+
+# Ignore CUDA-related files
+*.cu
+*.cuh
+*.fatbin
+*.ptx
+*.cubin
+
+# Ignore documentation
+docs/
+*.md
+*.rst
+*.ipynb
+
+# Ignore tests
+tests/
+*test*.py
+
+# Ignore Docker related
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Ignore cache
+.dvc/
+.cache/
+.quarto/
 
 # Virtual Environment
 venv/
@@ -50,10 +115,8 @@ airflow/plugins/*
 docker-compose.override.yml
 
 # Project specific
-*.log
 *.csv
 *.json
 *.yaml
 !docker-compose.yml
-!Dockerfile
 !requirements.txt 

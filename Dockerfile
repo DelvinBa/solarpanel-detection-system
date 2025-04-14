@@ -16,9 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Switch to airflow user to install Python packages into Airflow's environment
 USER airflow
 
-# (Optional) Copy your requirements.txt if you want to install from there
+# Install CPU-only versions of PyTorch and ultralytics to avoid GPU dependencies
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir ultralytics
+
+# Copy your requirements.txt if you want to install from there
 COPY requirements.txt /tmp/
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Skip torch and ultralytics which we've already installed in CPU-only mode
+RUN pip install --no-cache-dir $(grep -v "torch\|ultralytics" /tmp/requirements.txt)
 
 # Switch back to root only if you need to adjust folder permissions
 USER root
