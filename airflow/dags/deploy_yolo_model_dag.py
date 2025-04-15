@@ -48,7 +48,7 @@ dag = DAG(
 )
 
 # MLflow configuration
-MLFLOW_TRACKING_URI = f"http://mlflow_server:5001"
+MLFLOW_TRACKING_URI = f"http://tracking_server:5000"
 MODEL_NAME = "solar_panel_yolo"
 DEPLOYMENT_DIR = '/opt/airflow/dags/models/production'
 

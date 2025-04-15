@@ -57,11 +57,11 @@ dag = DAG(
 )
 
 # Training parameters (can be overridden by Airflow Variables)
-EPOCHS = Variable.get('yolo_epochs', default_var=3)
+EPOCHS = Variable.get('yolo_epochs', default_var=8)
 BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://mlflow_server:5000")
+MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://tracking_server:5000")
 PROJECT_DIR = '/opt/airflow/dags/models'
 
 # MinIO configuration
@@ -644,7 +644,6 @@ def train_yolo_model(**kwargs):
             # Try alternative URLs based on networking setup
             alternative_uris = [
                 "http://localhost:5001",
-                "http://mlflow:5001",
                 "http://127.0.0.1:5001"
             ]
             
@@ -1201,10 +1200,18 @@ def register_model_to_production(**kwargs):
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     client = MlflowClient()
     
+    # Set up S3/MinIO environment variables
+    os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+    os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+    os.environ["MLFLOW_S3_ENDPOINT_URL"] = f"http://{MINIO_ENDPOINT}:{MINIO_PORT}"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+
     # Log run_id information for debugging
     logger.info(f"Retrieved run_id from XCom: {run_id}")
     logger.info(f"Using MLflow tracking URI: {MLFLOW_TRACKING_URI}")
-    
+    logger.info(f"Using MinIO endpoint: {os.environ['MLFLOW_S3_ENDPOINT_URL']}")
+    logger.info(f"Using MinIO credentials: {MINIO_ACCESS_KEY} (access key hidden)")
+
     # Define quality thresholds
     quality_threshold = {
         'mAP50': 0.5,  # Minimum mAP50 score to register as production
@@ -1246,6 +1253,13 @@ def register_model_to_production(**kwargs):
                 # Start a new run
                 logger.info(f"Starting new MLflow run to log model from {model_path}")
                 with mlflow.start_run() as new_run:
+                    # Set up S3/MinIO environment variables for artifact storage
+                    os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+                    os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+                    os.environ["MLFLOW_S3_ENDPOINT_URL"] = f"http://{MINIO_ENDPOINT}:{MINIO_PORT}"
+                    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+                    logger.info(f"Set up S3 credentials for MLflow artifact storage: {os.environ['MLFLOW_S3_ENDPOINT_URL']}")
+                    
                     # Log the model file directly
                     try:
                         from ultralytics import YOLO
@@ -1303,86 +1317,157 @@ def register_model_to_production(**kwargs):
                         logger.error(f"Error logging model directly: {str(model_log_error)}")
                         # As a last resort, register with a name only
                         try:
-                            # Try to get the model if it exists
+                            from mlflow.exceptions import RestException
+
+                            # Initialize model_details as None to avoid variable access errors
+                            model_details = None
+
                             try:
-                                model_versions = client.search_model_versions(f"name='yolo-solar-panel-detector'")
-                                if model_versions and len(model_versions) > 0:
-                                    # Use the latest version
-                                    latest_version = max([int(mv.version) for mv in model_versions])
-                                    model_details = client.get_model_version(
-                                        name="yolo-solar-panel-detector", 
-                                        version=str(latest_version)
-                                    )
-                                    logger.info(f"Found existing model version: {latest_version}")
-                                else:
-                                    # Create it if it doesn't exist
-                                    model_details = client.create_registered_model(name="yolo-solar-panel-detector")
-                            except mlflow.exceptions.RestException as rest_error:
-                                if "RESOURCE_ALREADY_EXISTS" in str(rest_error):
-                                    # Model exists, try to get latest version
+                                # First create the registered model
+                                logger.info("Checking if model 'yolo-solar-panel-detector' exists")
+                                try:
+                                    # Check if the model is already registered
+                                    registered_model = client.get_registered_model("yolo-solar-panel-detector")
+                                    logger.info(f"Model 'yolo-solar-panel-detector' is already registered.")
+                                    model_details = type('obj', (object,), {
+                                        'name': "yolo-solar-panel-detector"
+                                    })
+                                except RestException as e:
+                                    if "RESOURCE_DOES_NOT_EXIST" in str(e):
+                                        # Model not found: register it
+                                        logger.info(f"Model 'yolo-solar-panel-detector' not found. Creating it.")
+                                        registered_model = client.create_registered_model(name="yolo-solar-panel-detector")
+                                        model_details = type('obj', (object,), {
+                                            'name': "yolo-solar-panel-detector"
+                                        })
+                                    else:
+                                        # Unexpected error, raise it
+                                        logger.error(f"Unexpected error while fetching model: {e}")
+                                        raise
+                                
+                                # Try to fetch model versions
+                                if model_details:
                                     model_versions = client.search_model_versions(f"name='yolo-solar-panel-detector'")
-                                    if model_versions and len(model_versions) > 0:
+                                    if model_versions:
                                         latest_version = max([int(mv.version) for mv in model_versions])
                                         model_details = client.get_model_version(
-                                            name="yolo-solar-panel-detector", 
+                                            name="yolo-solar-panel-detector",
                                             version=str(latest_version)
                                         )
-                                        logger.info(f"Using existing model version: {latest_version}")
+                                        logger.info(f"Found model version: {latest_version}")
                                     else:
-                                        # This shouldn't happen, but handle it gracefully
-                                        model_details = type('obj', (object,), {
-                                            'name': 'yolo-solar-panel-detector',
-                                            'version': '1'  # Default to version 1
-                                        })
-                                else:
-                                    raise
+                                        logger.warning(f"Model 'yolo-solar-panel-detector' is registered but has no versions yet.")
+                                        # Create a new model version through direct upload
+                                        logger.info("Creating a new model version through direct upload")
+                                        try:
+                                            with open(model_path, 'rb') as f:
+                                                model_data = f.read()
+                                            
+                                            # Create a temporary directory with the model file
+                                            with tempfile.TemporaryDirectory() as temp_dir:
+                                                temp_model_path = os.path.join(temp_dir, "model.pt")
+                                                with open(temp_model_path, 'wb') as f:
+                                                    f.write(model_data)
+                                                
+                                                # Log the model as an artifact
+                                                with mlflow.start_run() as new_run:
+                                                    # Make sure S3 credentials are set for this run
+                                                    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+                                                    os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+                                                    os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+                                                    os.environ["MLFLOW_S3_ENDPOINT_URL"] = f"http://{MINIO_ENDPOINT}:{MINIO_PORT}"
+                                                    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+                                                    
+                                                    mlflow.log_artifact(temp_model_path, "model")
+                                                    new_run_id = new_run.info.run_id
+                                                    
+                                                    # Register the model with the new run
+                                                    model_details = mlflow.register_model(
+                                                        model_uri=f"runs:/{new_run_id}/model",
+                                                        name="yolo-solar-panel-detector"
+                                                    )
+                                                    logger.info(f"Created new model version: {model_details.version}")
+                                        except Exception as upload_error:
+                                            logger.error(f"Error uploading model: {str(upload_error)}")
+                                            # Create a dummy model_details with skip_transition flag
+                                            model_details = type('obj', (object,), {
+                                                'name': "yolo-solar-panel-detector",
+                                                'skip_transition': True
+                                            })
+
+                            except Exception as model_fetch_error:
+                                logger.error(f"Error fetching or creating model: {str(model_fetch_error)}")
+                                # Ensure we have a model_details to work with
+                                model_details = type('obj', (object,), {
+                                    'name': "yolo-solar-panel-detector",
+                                    'skip_transition': True
+                                })
+
                         except Exception as e:
                             logger.error(f"Failed to handle model registration fallback: {str(e)}")
-                            # Create a dummy model_details object so we can continue
+                            # Skip the stage transition if we can't create a proper model version
+                            logger.warning("Unable to create a valid model version. Stage transition will be skipped.")
                             model_details = type('obj', (object,), {
                                 'name': 'yolo-solar-panel-detector',
-                                'version': None
+                                'skip_transition': True  # Flag to skip stage transition
                             })
             else:
                 logger.error(f"❌ Model path not found or invalid: {model_path}")
                 # Create a registered model without any versions as a last resort
                 model_details = client.create_registered_model(name="yolo-solar-panel-detector")
+                # Add flag to skip stage transition
+                model_details.skip_transition = True
         
         logger.info(f"✅ Model registered as: {model_details.name}, version: {getattr(model_details, 'version', 'N/A')}")
         
-        # Only transition if we have a valid model version
-        if hasattr(model_details, 'version'):
-            # Transition model to appropriate stage
-            client.transition_model_version_stage(
-                name=model_details.name,
-                version=model_details.version,
-                stage=stage
-            )
-            logger.info(f"✅ Model {model_details.name} version {model_details.version} transitioned to {stage}")
-            
-            # Add description with metrics
-            description = f"YOLO model trained for solar panel detection.\n"
-            description += f"Metrics: mAP50 = {metrics.get('mAP50', 0):.4f}, "
-            description += f"mAP50-95 = {metrics.get('mAP50-95', 0):.4f}, "
-            description += f"precision = {metrics.get('precision', 0):.4f}, "
-            description += f"recall = {metrics.get('recall', 0):.4f}\n"
-            description += f"Training parameters: epochs={EPOCHS}, batch_size={BATCH_SIZE}, img_size={IMAGE_SIZE}, model={MODEL_NAME}"
-            
-            client.update_model_version(
-                name=model_details.name,
-                version=model_details.version,
-                description=description
-            )
-            logger.info(f"✅ Updated model description with metrics")
+        # Only transition if we have a valid model version (positive integer) and no skip flag
+        if hasattr(model_details, 'version') and not hasattr(model_details, 'skip_transition'):
+            try:
+                # Verify the version is a valid positive integer
+                version = model_details.version
+                if isinstance(version, str):
+                    version = int(version)
+                
+                if version > 0:
+                    # Transition model to appropriate stage
+                    client.transition_model_version_stage(
+                        name=model_details.name,
+                        version=str(version),  # Make sure it's a string
+                        stage=stage
+                    )
+                    logger.info(f"✅ Model {model_details.name} version {version} transitioned to {stage}")
+                    
+                    # Add description with metrics
+                    description = f"YOLO model trained for solar panel detection.\n"
+                    description += f"Metrics: mAP50 = {metrics.get('mAP50', 0):.4f}, "
+                    description += f"mAP50-95 = {metrics.get('mAP50-95', 0):.4f}, "
+                    description += f"precision = {metrics.get('precision', 0):.4f}, "
+                    description += f"recall = {metrics.get('recall', 0):.4f}\n"
+                    description += f"Training parameters: epochs={EPOCHS}, batch_size={BATCH_SIZE}, img_size={IMAGE_SIZE}, model={MODEL_NAME}"
+                    
+                    client.update_model_version(
+                        name=model_details.name,
+                        version=str(version),
+                        description=description
+                    )
+                    logger.info(f"✅ Updated model description with metrics")
+                else:
+                    logger.warning(f"⚠️ Invalid model version: {version}. Must be a positive integer for stage transition.")
+            except Exception as transition_error:
+                logger.error(f"Error during model version transition: {str(transition_error)}")
             
             # Store model info for downstream tasks
             kwargs['ti'].xcom_push(key='model_name', value=model_details.name)
-            kwargs['ti'].xcom_push(key='model_version', value=model_details.version)
+            kwargs['ti'].xcom_push(key='model_version', value=getattr(model_details, 'version', 'unknown'))
             kwargs['ti'].xcom_push(key='model_stage', value=stage)
             
-            return model_details.version
+            return getattr(model_details, 'version', None)
         else:
-            logger.warning("⚠️ Model registered but no version available")
+            logger.warning("⚠️ Model registered but no valid version available for stage transition")
+            # Store basic model info for downstream tasks
+            kwargs['ti'].xcom_push(key='model_name', value=model_details.name)
+            kwargs['ti'].xcom_push(key='model_version', value='none')
+            kwargs['ti'].xcom_push(key='model_stage', value='none')
             return None
     except Exception as e:
         logger.error(f"Error registering model: {str(e)}")

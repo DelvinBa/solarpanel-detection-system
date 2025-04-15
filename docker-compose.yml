@@ -231,6 +231,20 @@ services:
       retries: 3
       start_period: 30s
 
+  minio-init:
+    build:
+      context: ./minio-init
+      dockerfile: Dockerfile
+    container_name: minio_init
+    volumes:
+      - ./solarpanel_detection_system:/solarpanel_detection_system
+    depends_on:
+      s3:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: "no"
+
   tracking_server:
     restart: always
     build: ./mlflow
@@ -239,6 +253,7 @@ services:
     depends_on:
       - postgres
       - s3
+      - minio-init
     ports:
       - "5001:5000"
     networks:
