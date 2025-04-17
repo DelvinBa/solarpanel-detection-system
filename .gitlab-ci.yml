@@ -129,16 +129,12 @@ pages:
 deploy_to_ec2:
   stage: deploy
   script:
-    # Debug: Check what's actually in the variable
+    # Make sure the key has proper line breaks
+    - echo "$EC2_SSH_KEY" > ec2_key2
+    - sed -i -e 's/\\n/\n/g' ec2_key2
+    - chmod 600 ec2_key2
     - echo "$EC2_SSH_KEY" | wc -l
-
-# Make sure the key has proper line breaks
-    - echo "$EC2_SSH_KEY" > ec2_key
-    - sed -i -e 's/\\n/\n/g' ec2_key
-    - chmod 600 ec2_key
-    - echo "$EC2_SSH_KEY" > ec2_key
-    - chmod 600 ec2_key
-    - ssh -o StrictHostKeyChecking=no -i ec2_key $EC2_USER@$EC2_HOST "
+    - ssh -o StrictHostKeyChecking=no -i ec2_key2 $EC2_USER@$EC2_HOST "
         cd /home/ubuntu/02 &&
         git pull origin main &&
         docker-compose down &&
