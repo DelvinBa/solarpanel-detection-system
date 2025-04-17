@@ -126,8 +126,6 @@ pages:
 
 deploy_to_ec2:
   stage: deploy
-  only:
-    - main
   script:
     - echo "$EC2_SSH_KEY" > ec2_key
     - chmod 600 ec2_key
