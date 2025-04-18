@@ -15,6 +15,8 @@ variables:
 test:
   stage: test
   image: docker:20.10.16
+  only:
+    - main
   services:
     - docker:20.10.16-dind
   variables:
@@ -127,9 +129,12 @@ pages:
 deploy_to_ec2:
   stage: deploy
   script:
-    - echo "$EC2_SSH_KEY" > ec2_key
-    - chmod 600 ec2_key
-    - ssh -o StrictHostKeyChecking=no -i ec2_key $EC2_USER@$EC2_HOST "
+    # Make sure the key has proper line breaks
+    - echo "$EC2_SSH_KEY" > ec2_key2
+    - sed -i -e 's/\\n/\n/g' ec2_key2
+    - chmod 600 ec2_key2
+    - echo "$EC2_SSH_KEY" | wc -l
+    - ssh -o StrictHostKeyChecking=no -i ec2_key2 $EC2_USER@$EC2_HOST "
         cd /home/ubuntu/02 &&
         git pull origin main &&
         docker-compose down &&
