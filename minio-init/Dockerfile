@@ -12,7 +12,9 @@ RUN pip install --no-cache-dir minio
 
 # Copy the initialization script
 COPY minio-init.sh /app/
-RUN chmod +x /app/minio-init.sh
+# Make it executable and ensure it has proper line endings
+RUN sed -i 's/\r$//' /app/minio-init.sh && \
+    chmod +x /app/minio-init.sh
 
 # Set the entrypoint
-ENTRYPOINT ["/app/minio-init.sh"] 
+CMD ["/bin/bash", "/app/minio-init.sh"] 

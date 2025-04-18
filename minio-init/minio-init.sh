@@ -130,4 +130,4 @@ pip install minio
 # Run the Python script to create buckets and upload data
 python /tmp/create_buckets.py
 
-echo "MinIO initialization completed." 
+echo "MinIO initialization completed."
