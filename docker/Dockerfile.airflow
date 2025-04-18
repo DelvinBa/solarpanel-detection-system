@@ -1,0 +1,67 @@
+# docker/Dockerfile.airflow
+ARG BASE_IMAGE=python:3.10-slim
+FROM ${BASE_IMAGE}
+
+LABEL component="airflow"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
+
+# Install Airflow with exact versions
+RUN pip install --no-cache-dir \
+    apache-airflow==2.10.5 \
+    apache-airflow-providers-amazon==8.8.0 \
+    apache-airflow-providers-postgres==5.10.0 \
+    apache-airflow-providers-celery==3.5.0 \
+    redis>=4.5.0 \
+    kombu>=5.3.0
+
+# Copy requirements and install dependencies
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir ultralytics \
+    && pip install --no-cache-dir $(grep -v "torch\|ultralytics\|apache-airflow" /tmp/requirements.txt)
+
+# Create airflow directories and set permissions
+RUN mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/config /opt/airflow/plugins \
+    && groupadd -r airflow --gid=50000 \
+    && useradd -r -g airflow --uid=50000 -d /opt/airflow airflow \
+    && chown -R 50000:0 /opt/airflow \
+    && chmod -R 775 /opt/airflow
+
+# Create app directory with correct permissions
+RUN mkdir -p /app && chown -R 50000:0 /app && chmod -R 775 /app
+
+# Copy the initialization script and set permissions (as root)
+COPY --chown=50000:0 ./init-scripts/init-airflow-user.sh /app/
+RUN chmod 775 /app/init-airflow-user.sh
+
+# Set working directory to airflow home
+WORKDIR /opt/airflow
+
+# Copy DAGs
+COPY --chown=airflow:root ./airflow/dags/ /opt/airflow/dags/
+
+# Expose airflow port
+EXPOSE 8080
+
+# Health check for airflow webserver
+HEALTHCHECK --interval=30s --timeout=30s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Switch to airflow user
+USER 50000
+
+# Default to running the webserver
+CMD ["airflow", "webserver"]

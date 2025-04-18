@@ -1,0 +1,47 @@
+# docker/Dockerfile.api
+ARG BASE_IMAGE=python:3.10-slim
+FROM ${BASE_IMAGE}
+
+LABEL component="api-gateway"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
+
+# Install API dependencies
+COPY fastapi_gateway/requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy application code
+COPY fastapi_gateway/src/ /app/src/
+
+# Create non-root user
+RUN groupadd -r apiuser --gid=2000 \
+    && useradd -r -g apiuser --uid=2000 -d /app apiuser \
+    && chown -R 2000:0 /app \
+    && chmod -R 775 /app
+
+# Set working directory
+WORKDIR /app
+
+# Expose the port
+EXPOSE 8000
+
+# Switch to api user
+USER 2000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the FastAPI app
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

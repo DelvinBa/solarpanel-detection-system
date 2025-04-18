@@ -1,0 +1,50 @@
+# docker/Dockerfile.mlflow
+FROM python:3.10-slim
+
+LABEL component="mlflow-server"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
+
+# Install MLflow dependencies
+RUN pip install --no-cache-dir \
+    mlflow==2.10.0 \
+    psycopg2-binary==2.9.6 \
+    boto3==1.28.38
+
+# Set up working directory first
+WORKDIR /app
+
+# Create mlflow user
+RUN groupadd -r mlflow --gid=3000 \
+    && useradd -r -g mlflow --uid=3000 -d /app mlflow \
+    && mkdir -p /app/mlartifacts \
+    && chown -R 3000:0 /app \
+    && chmod -R 775 /app
+
+# Expose the MLflow UI port
+EXPOSE 5000
+
+# Switch to mlflow user
+USER 3000
+
+# Health check for MLflow server
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://localhost:5000/health || exit 1
+
+# Start MLflow server
+CMD ["mlflow", "server", \
+     "--host", "0.0.0.0", \
+     "--port", "5000", \
+     "--default-artifact-root", "${MLFLOW_DEFAULT_ARTIFACT_ROOT:-/app/mlartifacts}", \
+     "--backend-store-uri", "${MLFLOW_BACKEND_STORE_URI:-sqlite:///mlflow.db}"]
