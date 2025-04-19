@@ -27,6 +27,7 @@ RUN pip install --no-cache-dir torch torchvision --index-url https://download.py
     && pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy application code
+COPY solarpanel_detection_system/ /app/solarpanel_detection_system/
 COPY solarpanel_detection_system/src/ /app/src/
 
 # Set up working directory

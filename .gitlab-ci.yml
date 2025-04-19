@@ -14,6 +14,62 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 
+stages:
+  - lint          # ← will run first
+  - test          # ← will run second
+  - build
+  - deploy
+  - pages
+
+variables:
+  PYTHON_VERSION: "3.9"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# ---------------------------- #
+# 1. LINT
+# ---------------------------- #
+lint:
+  stage: lint
+  image: python:${PYTHON_VERSION}-slim
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-pip
+    paths:
+      - .pip-cache
+  before_script:
+    - pip install --cache-dir $PIP_CACHE_DIR flake8
+  script:
+    - flake8 . --max-line-length=120
+
+# ---------------------------- #
+# 2. TEST (unit)
+# ---------------------------- #
+unit_test:
+  stage: test
+  image: python:${PYTHON_VERSION}-slim
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-pip
+    paths:
+      - .pip-cache
+  before_script:
+    # install your project + pytest
+    #  – if you already have a requirements.txt or pyproject.toml, use that instead
+    - pip install --cache-dir $PIP_CACHE_DIR -r requirements.txt || true
+    - pip install --cache-dir $PIP_CACHE_DIR pytest pytest-cov
+  script:
+    # run only unit tests; add --cov=. if you want coverage, or drop it for speed
+    - pytest tests/unit -q --cov=. --cov-report=term-missing
+  artifacts:
+    reports:
+      junit: junit.xml           # GitLab will show test results in MR UI
+    paths:
+      - htmlcov                  # coverage html (optional)
+  after_script:
+    # produce JUnit XML for GitLab test report (optional but helpful)
+    - pytest tests/unit -q --junitxml=junit.xml || true
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'   # parses “TOTAL …  85%” from pytest‑cov output
+
 
 # Build Docker image
 build:
