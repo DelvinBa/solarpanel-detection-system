@@ -32,7 +32,7 @@ variables:
 # ---------------------------- #
 lint:
   stage: lint
-  image: python:${PYTHON_VERSION}-slim
+  image: python:3.12-slim
   cache:
     key: ${CI_COMMIT_REF_SLUG}-pip
     paths:
@@ -40,8 +40,8 @@ lint:
   before_script:
     - pip install --cache-dir $PIP_CACHE_DIR flake8
   script:
-    - find airflow/dags/ solarpanel_detection_system/src/ tests/ \
-          -type f -name '*.py' -print0 | xargs -0 flake8 --max-line-length=120
+    - flake8 airflow/dags solarpanel_detection_system/src tests --max-line-length=120
+
 # ---------------------------- #
 # 2. TEST (unit)
 # ---------------------------- #
