@@ -276,6 +276,8 @@ services:
       - solarpanel_detection_system
     networks:
       - backend
+    volumes:
+      - ./solarpanel_detection_system:/solarpanel_detection_system
 
   solarpanel_detection_system:
     build:

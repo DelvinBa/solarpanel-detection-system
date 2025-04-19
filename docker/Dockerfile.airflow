@@ -43,6 +43,13 @@ RUN mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/config /opt/airflo
 # Create app directory with correct permissions
 RUN mkdir -p /app && chown -R 50000:0 /app && chmod -R 775 /app
 
+# Copy the initialization script
+COPY ./init-scripts/init-airflow-user.sh /app/
+# Make it executable and ensure it has proper line endings
+RUN sed -i 's/\r$//' /app/init-airflow-user.sh && \
+    chmod +x /app/init-airflow-user.sh
+
+
 # Copy the initialization script and set permissions (as root)
 COPY --chown=50000:0 ./init-scripts/init-airflow-user.sh /app/
 RUN chmod 775 /app/init-airflow-user.sh
