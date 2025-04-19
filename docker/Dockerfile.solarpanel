@@ -1,0 +1,52 @@
+# docker/Dockerfile.solarpanel
+FROM python:3.10-slim
+
+LABEL component="solarpanel-detection-system"
+LABEL maintainer="SolarPanelDetection Team"
+LABEL description="Solar Panel Detection System API"
+LABEL version="1.0"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
+
+# Install dependencies
+COPY solarpanel_detection_system/requirements.txt /tmp/
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy application code
+COPY solarpanel_detection_system/src/ /app/src/
+
+# Set up working directory
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r appuser --gid=1000 \
+    && useradd -r -g appuser --uid=1000 -d /app appuser \
+    && chown -R 1000:0 /app \
+    && chmod -R 775 /app
+
+# Expose the port
+EXPOSE 8000
+
+# Switch to non-root user
+USER 1000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the FastAPI app
+CMD ["uvicorn", "src.api_service.main:app", "--host", "0.0.0.0", "--port", "8000"] 
