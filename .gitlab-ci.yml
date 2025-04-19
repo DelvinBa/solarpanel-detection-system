@@ -131,6 +131,7 @@ deploy_to_ec2:
   script:
     - echo "Deploying to EC2..."
     - chmod 600 $EC2_DEPLOY_KEY
+    - |
     - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@54.227.121.145> << 'EOF'
         cd /home/ubuntu/02
         git pull origin Navid/Cleaning-up-for-aws
