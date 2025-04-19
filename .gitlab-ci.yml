@@ -67,7 +67,7 @@ unit_test:
       - htmlcov                  # coverage html (optional)
   after_script:
     # produce JUnit XML for GitLab test report (optional but helpful)
-    - pytest tests -q --junitxml=junit.xml || true
+    - pytest tests/unit -q --junitxml=junit.xml || true
   coverage: '/^TOTAL.*\s+(\d+\%)$/'   # parses “TOTAL …  85%” from pytest‑cov output
 
 
