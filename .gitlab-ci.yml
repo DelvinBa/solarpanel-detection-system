@@ -131,10 +131,10 @@ deploy_to_ec2:
   script:
     - echo "Deploying to EC2..."
     - chmod 600 $EC2_DEPLOY_KEY
-    - |
-    - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@54.227.121.145> << 'EOF'
-        cd /home/ubuntu/02
-        git pull origin Navid/Cleaning-up-for-aws
-        docker-compose down
-        docker-compose up -d --build
-      EOF
+    - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@54.227.121.145 "
+      cd /home/ubuntu/02 &&
+      git fetch origin &&
+      git checkout Navid/Cleaning-up-for-aws &&
+      git reset --hard origin/Navid/Cleaning-up-for-aws &&
+      docker-compose down &&
+      docker-compose up -d --build "
