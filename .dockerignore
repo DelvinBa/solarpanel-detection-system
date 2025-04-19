@@ -103,8 +103,11 @@ ENV/
 # Airflow
 airflow/logs/*
 !airflow/logs/.gitkeep
-airflow/dags/*
-!airflow/dags/.gitkeep
+airflow/dags/__pycache__/
+airflow/dags/*.pyc
+airflow/dags/*.pyo
+airflow/dags/*.pyd
+airflow/dags/.git/
 airflow/config/*
 !airflow/config/.gitkeep
 airflow/plugins/*

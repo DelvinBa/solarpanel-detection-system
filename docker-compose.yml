@@ -1,22 +1,10 @@
-# Basic Airflow cluster configuration for CeleryExecutor with Redis and PostgreSQL.
-#
-# WARNING: This configuration is for local development. Do not use it in a production deployment.
-#
-# This configuration supports basic configuration using environment variables or an .env file
-# The following variables are supported:
-
----
 x-airflow-common:
   &airflow-common
-  # In order to add custom dependencies or upgrade provider packages you can use your extended image.
-  # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
-  # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.5}
   build:
     context: .
-    dockerfile: Dockerfile
+    dockerfile: ./docker/Dockerfile.airflow
     args:
-      - BUILDKIT_INLINE_CACHE=1
+      BASE_IMAGE: python:3.10-slim
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -28,8 +16,8 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__CORE__DAGS_FOLDER: '/opt/airflow/dags'
   volumes:
-    - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
@@ -84,7 +72,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    command: ["airflow", "webserver"]
     ports:
       - "8080:8080"
     healthcheck:
@@ -101,7 +89,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    command: scheduler
+    command: ["airflow", "scheduler"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 30s
@@ -116,7 +104,7 @@ services:
 
   airflow-worker:
     <<: *airflow-common
-    command: celery worker
+    command: ["airflow", "celery", "worker"]
     healthcheck:
       # yamllint disable rule:line-length
       test:
@@ -139,7 +127,7 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
-    command: triggerer
+    command: ["airflow", "triggerer"]
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 30s
@@ -158,56 +146,24 @@ services:
     command:
       - -c
       - |
-        mkdir -p /sources/logs /sources/dags /sources/plugins
-        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
-        exec /entrypoint airflow db init
+        mkdir -p /sources/logs /sources/plugins
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,plugins}
+        airflow db init
+        airflow users create \
+            --username ${AIRFLOW_USERNAME:-airflow} \
+            --firstname ${AIRFLOW_FIRSTNAME:-Airflow} \
+            --lastname ${AIRFLOW_LASTNAME:-User} \
+            --role Admin \
+            --email ${AIRFLOW_EMAIL:-airflow@example.com} \
+            --password ${AIRFLOW_PASSWORD:-airflow}
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
-      _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
-    
-    
 
-  airflow-cli:
-    <<: *airflow-common
-    profiles:
-      - debug
-    environment:
-      <<: *airflow-common-env
-      CONNECTION_CHECK_MAX_COUNT: "0"
-    # Workaround for entrypoint issue. See: https://github.com/apache/airflow/issues/16252
-    command:
-      - bash
-      - -c
-      - airflow
-
-  # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
-  # or by explicitly targeted on the command line e.g. docker-compose up flower.
-  # See: https://docs.docker.com/compose/profiles/
-  flower:
-    <<: *airflow-common
-    command: celery flower
-    profiles:
-      - flower
-    ports:
-      - "5555:5555"
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    restart: always
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
 
   s3:
     restart: always
@@ -231,14 +187,31 @@ services:
       retries: 3
       start_period: 30s
 
+  minio-init:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.minio-init
+    container_name: minio_init
+    volumes:
+      - ./solarpanel_detection_system:/solarpanel_detection_system
+    depends_on:
+      s3:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: "no"
+
   tracking_server:
     restart: always
-    build: ./mlflow
+    build: 
+      context: .
+      dockerfile: ./docker/Dockerfile.mlflow
     image: mlflow_server
     container_name: mlflow_server
     depends_on:
       - postgres
       - s3
+      - minio-init
     ports:
       - "5001:5000"
     networks:
@@ -254,15 +227,8 @@ services:
       - MLFLOW_LOGGING_LEVEL=${MLFLOW_LOGGING_LEVEL:-INFO}
       - MLFLOW_BUCKET_NAME=mlflow
       - MLFLOW_ARTIFACT_ROOT=s3://mlflow
-    command: >
-      mlflow server
-      --backend-store-uri postgresql://mlflow:mlflow@postgres:5432/mlflow
-      --host 0.0.0.0
-      --serve-artifacts
-      --artifacts-destination s3://mlflow
-      --default-artifact-root s3://mlflow
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -285,29 +251,12 @@ services:
       timeout: 10s
       retries: 3
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: always
-    ports:
-      - "5050:80"
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-admin}
-      - PGADMIN_CONFIG_SERVER_MODE=False
-      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
-    volumes:
-      - ./pgadmin-data:/var/lib/pgadmin
-    networks:
-      - frontend
-      - backend
-    depends_on:
-      - postgres
-
   fastapi_gateway:
     build:
-      context: ./fastapi_gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/Dockerfile.api
+      args:
+        BASE_IMAGE: python:3.10-slim
     container_name: fastapi_gateway
     ports:
       - "8001:8000"  # Exposed on host:8001
@@ -315,18 +264,18 @@ services:
       - solarpanel_detection_system
     networks:
       - backend
+    volumes:
+      - ./solarpanel_detection_system:/solarpanel_detection_system
 
   solarpanel_detection_system:
     build:
-      context: ./solarpanel_detection_system
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/Dockerfile.solarpanel
     container_name: solarpanel_detection_system
     ports:
       - "8002:8000"  
     networks:
       - backend
-
-
 
 volumes:
   postgres-db-volume:
