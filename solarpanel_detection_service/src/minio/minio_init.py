@@ -7,7 +7,7 @@ def get_minio_client():
     Returns a Minio client instance configured for your local setup.
     Adjust the endpoint, access key, and secret key as needed.
     """
-    endpoint = "solar_minio:9000"  
+    endpoint = "minio:9000"  
     access_key = "minioadmin"
     secret_key = "minioadmin"
     secure = False
