@@ -17,6 +17,8 @@ variables:
 lint:
   stage: lint
   image: python:${PYTHON_VERSION}-slim
+  only:
+    - main
   before_script:
     - pip install flake8
   script:
