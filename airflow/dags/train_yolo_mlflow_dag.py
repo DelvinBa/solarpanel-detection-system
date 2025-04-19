@@ -61,15 +61,16 @@ EPOCHS = Variable.get('yolo_epochs', default_var=3)
 BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://tracking_server:5000")
+MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://mlflow:5000")
 PROJECT_DIR = '/opt/airflow/dags/models'
 
 # MinIO configuration
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+MINIO_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID', os.getenv('MINIO_ACCESS_KEY', 'minioadmin'))
+MINIO_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', os.getenv('MINIO_SECRET_KEY', 'minioadmin'))
 MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'mlflow')
+MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 TRAIN_DATA_PREFIX = "data/processed/SateliteData/"
 
 # Temp directory for downloading data
@@ -78,18 +79,24 @@ TEMP_DATA_DIR = Variable.get('yolo_temp_data_dir', default_var='/tmp/yolo_traini
 def initialize_minio_client():
     """Initialize and return MinIO client."""
     try:
-        logger.info(f"Attempting to connect to MinIO at {MINIO_ENDPOINT}:{MINIO_PORT}")
-        # Initialize MinIO client with the correct hostname and port
+        endpoint = MINIO_ENDPOINT
+        # If port is specified and not using AWS S3, include it in the endpoint
+        if MINIO_PORT != '80' and MINIO_PORT != '443' and not (MINIO_ENDPOINT.startswith('s3.') or MINIO_ENDPOINT == 's3'):
+            endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        
+        logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
+        
+        # Initialize MinIO client
         client = Minio(
-            endpoint=f"{MINIO_ENDPOINT}:{MINIO_PORT}",
+            endpoint=endpoint,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
-            secure=False
+            secure=MINIO_SECURE
         )
-        logger.info(f"Successfully initialized MinIO client with endpoint: {MINIO_ENDPOINT}:{MINIO_PORT}")
+        logger.info(f"Successfully initialized MinIO/S3 client with endpoint: {endpoint}")
         
         # Test connection by listing buckets
-        logger.info("Testing MinIO connection by listing buckets...")
+        logger.info("Testing MinIO/S3 connection by listing buckets...")
         try:
             buckets = client.list_buckets()
             bucket_names = [b.name for b in buckets]
@@ -111,7 +118,7 @@ def initialize_minio_client():
             
         return client
     except Exception as e:
-        logger.error(f"Error initializing MinIO client: {str(e)}")
+        logger.error(f"Error initializing MinIO/S3 client: {str(e)}")
         raise
 
 def validate_data_exists(**kwargs):
@@ -643,8 +650,8 @@ def train_yolo_model(**kwargs):
             
             # Try alternative URLs based on networking setup
             alternative_uris = [
-                "http://localhost:5001",
-                "http://127.0.0.1:5001"
+                "http://mlflow:5000",
+                os.getenv("MLFLOW_UI_URL", "http://mlflow:5000")
             ]
             
             for alt_uri in alternative_uris:
@@ -952,10 +959,10 @@ def train_yolo_model(**kwargs):
         try:
             # Search for the training module in the project directory
             script_paths = [
-                "/opt/airflow/dags/solarpanel_detection_system/src/traintest/train_yolo.py",
-                "/opt/airflow/solarpanel_detection_system/src/traintest/train_yolo.py",
-                "/opt/solarpanel_detection_system/src/traintest/train_yolo.py",
-                str(Path(__file__).parent / "solarpanel_detection_system/src/traintest/train_yolo.py"),
+                "/opt/airflow/dags/solarpanel_detection_service/src/traintest/train_yolo.py",
+                "/opt/airflow/solarpanel_detection_service/src/traintest/train_yolo.py",
+                "/opt/solarpanel_detection_service/src/traintest/train_yolo.py",
+                str(Path(__file__).parent / "solarpanel_detection_service/src/traintest/train_yolo.py"),
             ]
             
             script_path = None

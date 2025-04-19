@@ -195,4 +195,5 @@ mlflow.db
 solar_panel_detection/yolo_run_*
 build_context/
 /mlartifacts
-solarpanel_detection_system/models/yolo_run_*
+solarpanel_detection_service/models/yolo_run_*
+solarpanel_detection_service/data/*

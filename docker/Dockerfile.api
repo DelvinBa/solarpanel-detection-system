@@ -25,20 +25,20 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY fastapi_gateway/src/ /app/src/
 
 # Copy solarpanel detection system code
-COPY solarpanel_detection_system/ /solarpanel_detection_system/
+COPY solarpanel_detection_service/ /solarpanel_detection_service/
 
 # Create non-root user
 RUN groupadd -r apiuser --gid=2000 \
     && useradd -r -g apiuser --uid=2000 -d /app apiuser \
     && chown -R 2000:0 /app \
-    && chown -R 2000:0 /solarpanel_detection_system \
+    && chown -R 2000:0 /solarpanel_detection_service \
     && chmod -R 775 /app \
-    && chmod -R 775 /solarpanel_detection_system
+    && chmod -R 775 /solarpanel_detection_service
 
 # Set working directory
 WORKDIR /app
 
-# Add solarpanel_detection_system to Python path
+# Add solarpanel_detection_service to Python path
 ENV PYTHONPATH=/:/app:$PYTHONPATH
 
 # Expose the port

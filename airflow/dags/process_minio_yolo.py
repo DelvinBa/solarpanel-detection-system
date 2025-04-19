@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 # Environment configuration
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+MINIO_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID', os.getenv('MINIO_ACCESS_KEY', 'minioadmin'))
+MINIO_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', os.getenv('MINIO_SECRET_KEY', 'minioadmin'))
 BUCKET_NAME = os.getenv('MINIO_BUCKET', 'inference-data')
+MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 INFERENCE_IMAGES_FOLDER = "inference_images/"
 DETECTION_RESULTS_FOLDER = "detection_results/"
 MANIFEST_FILENAME = "house_id_results.csv"
@@ -43,13 +44,22 @@ default_args = {
 def initialize_minio_client():
     """Initialize and return a MinIO client."""
     try:
+        endpoint = MINIO_ENDPOINT
+        # If port is specified and not using AWS S3, include it in the endpoint
+        if MINIO_PORT != '80' and MINIO_PORT != '443' and not (MINIO_ENDPOINT.startswith('s3.') or MINIO_ENDPOINT == 's3'):
+            endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        
+        logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
+        
+        # Initialize MinIO client
         client = Minio(
-            endpoint=f"{MINIO_ENDPOINT}:{MINIO_PORT}",
+            endpoint=endpoint,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
-            secure=False
+            secure=MINIO_SECURE
         )
         logger.info("MinIO client initialized successfully.")
+        
         # Ensure bucket exists
         if not client.bucket_exists(BUCKET_NAME):
             client.make_bucket(BUCKET_NAME)

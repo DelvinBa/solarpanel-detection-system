@@ -382,6 +382,23 @@ This project is licensed under the terms of the [LICENSE](LICENSE) file included
 
 ## Project Structure
 
-```#   T e m p o r a r y   c o m m i t   t o   t r i g g e r   m e r g e   r e q u e s t 
- 
- 
+## Service Ports
+
+All services in the Solar Panel Detection system run on their own ports:
+
+| Service | Internal Port | External Port | URL |
+|---------|--------------|--------------|-----|
+| FastAPI Gateway | 8000 | 8001 | http://localhost:8001 |
+| Solar Panel Detection System | 8000 | 8002 | http://localhost:8002 |
+| Airflow UI | 8080 | 8080 | http://localhost:8080 |
+| MinIO S3 API | 9000 | 9000 | http://localhost:9000 |
+| MinIO Console | 9001 | 9001 | http://localhost:9001 |
+| MLflow UI | 5000 | 5001 | http://localhost:5001 |
+| Portainer | 8000 | 8004 | http://localhost:8004 |
+| Portainer HTTPS | 9443 | 9443 | https://localhost:9443 |
+| PostgreSQL | 5432 | 5432 | localhost:5432 |
+
+**Note**: 
+- Internal ports are used inside the Docker network
+- External ports are how you access the services from your host machine
+- Services with the same internal port (8000) are isolated by Docker networking

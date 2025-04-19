@@ -49,9 +49,10 @@ dag = DAG(
 # MinIO configuration
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+MINIO_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID', os.getenv('MINIO_ACCESS_KEY', 'minioadmin'))
+MINIO_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', os.getenv('MINIO_SECRET_KEY', 'minioadmin'))
 MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'mlflow')
+MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 
 # Source and destination paths in MinIO
 SOURCE_PREFIX = "data/raw/"
@@ -68,18 +69,24 @@ VAL_RATIO = float(Variable.get('val_ratio', default_var=0.1))
 def initialize_minio_client():
     """Initialize and return MinIO client."""
     try:
-        logger.info(f"Attempting to connect to MinIO at {MINIO_ENDPOINT}:{MINIO_PORT}")
-        # Initialize MinIO client with the correct hostname and port
+        endpoint = MINIO_ENDPOINT
+        # If port is specified and not using AWS S3, include it in the endpoint
+        if MINIO_PORT != '80' and MINIO_PORT != '443' and not (MINIO_ENDPOINT.startswith('s3.') or MINIO_ENDPOINT == 's3'):
+            endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        
+        logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
+        
+        # Initialize MinIO client
         client = Minio(
-            endpoint=f"{MINIO_ENDPOINT}:{MINIO_PORT}",
+            endpoint=endpoint,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
-            secure=False
+            secure=MINIO_SECURE
         )
-        logger.info(f"Successfully initialized MinIO client with endpoint: {MINIO_ENDPOINT}:{MINIO_PORT}")
+        logger.info(f"Successfully initialized MinIO/S3 client with endpoint: {endpoint}")
         
         # Test connection by listing buckets
-        logger.info("Testing MinIO connection by listing buckets...")
+        logger.info("Testing MinIO/S3 connection by listing buckets...")
         try:
             buckets = client.list_buckets()
             bucket_names = [b.name for b in buckets]
@@ -101,7 +108,7 @@ def initialize_minio_client():
             
         return client
     except Exception as e:
-        logger.error(f"Error initializing MinIO client: {str(e)}")
+        logger.error(f"Error initializing MinIO/S3 client: {str(e)}")
         raise
 
 def download_raw_data(**kwargs):

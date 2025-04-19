@@ -48,7 +48,7 @@ dag = DAG(
 )
 
 # MLflow configuration
-MLFLOW_TRACKING_URI = f"http://tracking_server:5000"
+MLFLOW_TRACKING_URI = f"http://mlflow:5000"
 MODEL_NAME = "solar_panel_yolo"
 DEPLOYMENT_DIR = '/opt/airflow/dags/models/production'
 
@@ -239,10 +239,10 @@ def restart_inference_service(**kwargs):
         try:
             # Here you would make a request to your inference service to check if it's alive
             # For example:
-            # response = requests.get("http://solarpanel_detection_system:8000/health")
-            # if response.status_code == 200:
-            #     print("Service is responsive!")
-            #     break
+            response = requests.get("http://solarpanel_detection_service:8000/health")
+            if response.status_code == 200:
+                print("Service is responsive!")
+                break
             
             # Simulating success
             print(f"Retry {i+1}/{max_retries}: Service started successfully")
