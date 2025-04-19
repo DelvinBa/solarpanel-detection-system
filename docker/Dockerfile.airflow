@@ -1,24 +1,30 @@
 # docker/Dockerfile.airflow
+
 ARG BASE_IMAGE=python:3.10-slim
 FROM ${BASE_IMAGE}
 
 LABEL component="airflow"
 
-# Set environment variables
+# Environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install system dependencies and pip tooling
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         git \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
 
-# Install Airflow with exact versions
+# Install Airflow and providers
 RUN pip install --no-cache-dir \
     apache-airflow==2.10.5 \
     apache-airflow-providers-amazon==8.8.0 \
@@ -27,48 +33,47 @@ RUN pip install --no-cache-dir \
     redis>=4.5.0 \
     kombu>=5.3.0
 
-# Copy requirements and install dependencies
-COPY requirements.txt /tmp/
+# Install PyTorch and YOLOv8
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir ultralytics \
-    && pip install --no-cache-dir $(grep -v "torch\|ultralytics\|apache-airflow" /tmp/requirements.txt)
+    && pip install --no-cache-dir ultralytics
 
-# Create airflow directories and set permissions
-RUN mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/config /opt/airflow/plugins \
-    && groupadd -r airflow --gid=50000 \
-    && useradd -r -g airflow --uid=50000 -d /opt/airflow airflow \
-    && chown -R 50000:0 /opt/airflow \
-    && chmod -R 775 /opt/airflow
+# Copy and install remaining Python dependencies
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir $(grep -vE "torch|ultralytics|apache-airflow" /tmp/requirements.txt)
 
-# Create app directory with correct permissions
-RUN mkdir -p /app && chown -R 50000:0 /app && chmod -R 775 /app
+# Create airflow user and directories
+RUN groupadd -r airflow --gid=50000 && \
+    useradd -r -g airflow --uid=50000 -d /opt/airflow airflow && \
+    mkdir -p /opt/airflow/{dags,logs,config,plugins} /app && \
+    chown -R 50000:0 /opt/airflow /app && \
+    chmod -R 775 /opt/airflow /app
 
-# Copy the initialization script
-COPY ./init-scripts/init-airflow-user.sh /app/
-# Make it executable and ensure it has proper line endings
-RUN sed -i 's/\r$//' /app/init-airflow-user.sh && \
-    chmod +x /app/init-airflow-user.sh
-
-
-# Copy the initialization script and set permissions (as root)
+# Copy init script and ensure it's executable
 COPY --chown=50000:0 ./init-scripts/init-airflow-user.sh /app/
-RUN chmod 775 /app/init-airflow-user.sh
+RUN sed -i 's/\r$//' /app/init-airflow-user.sh && chmod 775 /app/init-airflow-user.sh
 
-# Set working directory to airflow home
-WORKDIR /opt/airflow
+# Create entrypoint to copy DAGs at runtime
+RUN echo '#!/bin/bash\nif [ -d "/sources/airflow/dags" ]; then\n  echo "Copying DAGs from /sources/airflow/dags"\n  cp -rf /sources/airflow/dags/* /opt/airflow/dags/\n  chown -R airflow:root /opt/airflow/dags\nfi\n\nexec "$@"' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
 
-# Copy DAGs
+RUN mkdir -p /opt/airflow/dags && \
+    chown -R 50000:0 /opt/airflow && \
+    chmod -R 775 /opt/airflow
+
 COPY --chown=airflow:root ./airflow/dags/ /opt/airflow/dags/
 
-# Expose airflow port
+
+# Expose UI port
 EXPOSE 8080
 
-# Health check for airflow webserver
+# Health check for webserver
 HEALTHCHECK --interval=30s --timeout=30s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
 # Switch to airflow user
 USER 50000
 
-# Default to running the webserver
+# Set working directory and entrypoint
+WORKDIR /opt/airflow
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["airflow", "webserver"]

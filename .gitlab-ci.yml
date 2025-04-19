@@ -1,4 +1,5 @@
 stages:
+  - lint
   - test
   - build
   - deploy
@@ -10,6 +11,20 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
   PYTHON_VERSION: "3.9"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# Lint Python code
+lint:
+  stage: lint
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - pip install flake8
+  script:
+    - flake8 src/ --max-line-length=120
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-pip
+    paths:
+      - .pip-cache/
 
 # Lint and test Python code
 test:
@@ -37,6 +52,10 @@ test:
     reports:
       junit: test-results/junit.xml
     expire_in: 1 week
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-pip
+    paths:
+      - .pip-cache/
 
 # Build Docker image
 build:
@@ -55,58 +74,6 @@ build:
   after_script:
     - docker logout $CI_REGISTRY
 
-# Deploy to staging environment
-# deploy_staging:
-#   stage: deploy
-#   image: docker:20.10.16
-#   services:
-#     - docker:20.10.16-dind
-#   variables:
-#     DOCKER_HOST: tcp://docker:2375
-#     ENVIRONMENT: staging
-#   before_script:
-#     - apk add --no-cache docker-compose openssh-client
-#     - eval $(ssh-agent -s)
-#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-#     - chmod 644 ~/.ssh/known_hosts
-#   script:
-#     - echo "Deploying to staging environment..."
-#     - scp docker-compose.deploy.yml $STAGING_SERVER_USER@$STAGING_SERVER_HOST:/opt/solar-panel-detection/
-#     - ssh $STAGING_SERVER_USER@$STAGING_SERVER_HOST "cd /opt/solar-panel-detection && export IMAGE_NAME=$IMAGE_NAME && export ENVIRONMENT=staging && docker-compose -f docker-compose.deploy.yml pull && docker-compose -f docker-compose.deploy.yml up -d"
-#   environment:
-#     name: staging
-#     url: http://${STAGING_SERVER_HOST}:8080
-#   only:
-#     - main
-
-# # Deploy to production environment
-# deploy_production:
-#   stage: deploy
-#   image: docker:20.10.16
-#   services:
-#     - docker:20.10.16-dind
-#   variables:
-#     DOCKER_HOST: tcp://docker:2375
-#     ENVIRONMENT: production
-#   before_script:
-#     - apk add --no-cache docker-compose openssh-client
-#     - eval $(ssh-agent -s)
-#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-#     - chmod 644 ~/.ssh/known_hosts
-#   script:
-#     - echo "Deploying to production environment..."
-#     - scp docker-compose.deploy.yml $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST:/opt/solar-panel-detection/
-#     - ssh $PRODUCTION_SERVER_USER@$PRODUCTION_SERVER_HOST "cd /opt/solar-panel-detection && export IMAGE_NAME=$IMAGE_NAME && export ENVIRONMENT=production && docker-compose -f docker-compose.deploy.yml pull && docker-compose -f docker-compose.deploy.yml up -d"
-#   environment:
-#     name: production
-#     url: http://${PRODUCTION_SERVER_HOST}:8080
-#   only:
-#     - tags
-#   when: manual
 
 # Generate and publish project documentation
 pages:

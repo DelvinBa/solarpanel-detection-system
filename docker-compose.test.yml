@@ -7,14 +7,16 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/app
+      - pip-cache:/root/.cache/pip
     working_dir: /app
     command: >
-      bash -c "pip install pytest flake8 &&
-               echo 'Running flake8...' &&
-               flake8 src/ --max-line-length=120 || echo 'Flake8 issues found but continuing' &&
-               echo 'Running pytest...' &&
-               mkdir -p src/tests &&
-               echo 'def test_basic(): assert True' > src/tests/test_basic.py &&
-               python -m pytest src/ -v"
+      bash -c "
+        pip install pytest pytest-xdist pytest-cov flake8 &&
+        echo 'Running pytest with parallel execution...' &&
+        python -m pytest src/ -v --numprocesses auto --cov=src --cov-report=xml"
     environment:
-      - PYTHONPATH=/app 
+      - PYTHONPATH=/app
+      - PYTEST_ADDOPTS=--numprocesses auto
+
+volumes:
+  pip-cache: 

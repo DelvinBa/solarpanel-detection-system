@@ -16,8 +16,8 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__CORE__DAGS_FOLDER: '/opt/airflow/dags'
   volumes:
-    - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
@@ -141,41 +141,29 @@ services:
         condition: service_completed_successfully
 
   airflow-init:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.airflow
-      args:
-        BASE_IMAGE: python:3.10-slim
+    <<: *airflow-common
+    entrypoint: /bin/bash
     command:
-      - /bin/bash
       - -c
       - |
-        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins
-        chown -R "50000:0" /opt/airflow/{logs,dags,plugins}
+        mkdir -p /sources/logs /sources/plugins
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,plugins}
         airflow db init
+        airflow users create \
+            --username ${AIRFLOW_USERNAME:-airflow} \
+            --firstname ${AIRFLOW_FIRSTNAME:-Airflow} \
+            --lastname ${AIRFLOW_LASTNAME:-User} \
+            --role Admin \
+            --email ${AIRFLOW_EMAIL:-airflow@example.com} \
+            --password ${AIRFLOW_PASSWORD:-airflow}
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres/postgres
-      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:postgres@postgres/postgres
-      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CORE__FERNET_KEY: ''
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
-      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+      <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
-      _PIP_ADDITIONAL_REQUIREMENTS: ''
-    user: "0:0"  # Run as root for initialization
-    networks:
-      - backend
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+    user: "0:0"
+    volumes:
+      - ${AIRFLOW_PROJ_DIR:-.}:/sources
+
 
   s3:
     restart: always
