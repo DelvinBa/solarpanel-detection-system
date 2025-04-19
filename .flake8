@@ -9,7 +9,7 @@ exclude =
     venv/,
     .vscode/,
     .dvc/,
-    .quarto/
+    .quarto/,
 ignore = 
     # W503: Line break occurred before a binary operator (this is actually preferred in PEP 8)
     W503,
