@@ -1,34 +1,30 @@
 C4Context
-title Context Diagram for Solar Panel Detection System
+title Context Diagram for Solarpanel Detection System
 
-Enterprise_Boundary(b1, "Solar Panel Detection System Boundary") {
+Enterprise_Boundary(b1, "Solarpanel Detection System Boundary") {
 
-    
-    System(spds, "Solar Panel Detection System", "Detects solar panels in house images using machine learning. Includes data ingestion via scraping scripts.")
-    Person(client, "Nijhuis Bouw", "Uploads inference images and checks detection results.")
-    System_Ext(data_storage, "Data Storage for Results", "Stores detection results and other project-related data (currently an Excel file).")
+    System(spds, "Solarpanel Detection System", "Detects solar panels in aerial house images using ML. Supports training, inference, and data collection.")
+    Person(selin, "Selin (NOWATT Product Owner)", "Collects data, runs training, and performs batch detection.")
+    System_Ext(housing_data, "NOWATT Housing Attribute Dataset", "CSV file with housing attributes, incl. solar panel labels.")
 
 }
 
-System_Ext(commondata, "CommonDataFactory", "Provides list of addresses for a given city name.")
-System_Ext(kadaster, "Bag Viewer Kadaster", "Provides X, Y location based on address.")
-System_Ext(pdok, "PDOK Luchtfoto WMS", "Returns house image based on X, Y location.")
+System_Ext(commondata, "CommonDataFactory", "Returns PID and VID for all houses in a city.")
+System_Ext(kadaster, "Bag Viewer Kadaster", "Returns X, Y from VID")
+System_Ext(pdok, "PDOK Luchtfoto WMS", "Gets aerial image from X,Y coordinates.")
 
-Rel(client, spds, "Uploads images & reviews results")
+Rel(selin, spds, "Uploads images, trains model, and runs detection")
+Rel(spds, commondata, "City name → House IDs")
+Rel(spds, kadaster, "House IDs → X, Y coordinates")
+Rel(spds, pdok, "X, Y → Aerial image")
 
-
-Rel(spds, commondata, "Sends city name, receives address list")
-Rel(spds, kadaster, "Sends address, receives X, Y location")
-Rel(spds, pdok, "Sends X, Y location, receives house image")
-
-Rel(spds, data_storage, "Writes detection results")
-
+Rel(spds, housing_data, "Stores detection results with house ID (manual mapping)")
 
 UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 
-UpdateRelStyle(client, spds, $textColor="blue", $lineColor="blue", $offsetY="80", $offsetX="-70")
+UpdateRelStyle(selin, spds, $textColor="blue", $lineColor="blue", $offsetY="80", $offsetX="-70")
 
 UpdateRelStyle(spds, commondata, $textColor="blue", $lineColor="blue", $offsetX="-300", $offsetY="-50")
 UpdateRelStyle(spds, kadaster, $textColor="green", $lineColor="green", $offsetX="-50", $offsetY="-50")
 UpdateRelStyle(spds, pdok, $textColor="purple", $lineColor="purple", $offsetX="30", $offsetY="-50")
-UpdateRelStyle(spds, data_storage, $textColor="red", $lineColor="red", $offsetY="-20", $offsetX="30")
+UpdateRelStyle(spds, housing_data, $textColor="red", $lineColor="red", $offsetY="-20", $offsetX="30")
