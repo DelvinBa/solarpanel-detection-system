@@ -2,16 +2,16 @@ C4Dynamic
 title Dynamic Diagram for Training Pipeline
 
 %% Participants and Boundaries
-Person(user, "Nijhuis / Data Owner", "Provides new training data or triggers training")
-System_Boundary(s, "Machine Learning System") {
+Person(user, "Selin / Data Owner", "Provides new training data")
+System_Boundary(s, "Solarpanel Detection System") {
     ContainerDb(minio, "MinIO", "Object Store (S3-compatible)", "Holds training images, model artifacts, etc.")
     Container_Boundary(airflow, "Airflow") {
         Component(trainingDag, "Training DAG", "Python/Airflow DAG", "Schedules and orchestrates the training tasks.")
     }
     Container_Boundary(pipeline, "Solardetection Service") {
-        Component(training, "Training Pipeline", "Python", "Trains/updates the detection model using collected images.")
-        Component(inference, "Inference Pipeline", "Python", "Executes solar panel detection (YOLO model)")
-        Component(webscraping, "Webscraping Process", "Python", "Part of the Solardetection Service container.")
+        Component(training, "Training process", "Python", "Trains/updates the detection model using collected images.")
+        Component(inference, "Inference Process", "Python", "Executes solar panel detection (YOLO model)")
+        Component(ingestion, "Ingestion Process", "Python", "Part of the Solardetection Service container.")
     }
     Container(mlflow, "MLflow", "Python", "Tracks ML experiments, metrics, and artifacts.")
     ContainerDb(postgres, "PostgreSQL", "Relational DB", "Stores references or metadata for trained models.")
@@ -19,17 +19,26 @@ System_Boundary(s, "Machine Learning System") {
 
 %% Relationships (Training Process Flow)
 Rel(user, minio, "Uploads new training data/images", "S3/HTTP")
-Rel(trainingDag, minio, "Checks for new training data", "S3/HTTP")
+
 Rel(trainingDag, training, "Triggers the model training job", "Internal call")
 Rel(training, minio, "4. Loads training images", "S3/HTTP")
 Rel(training, mlflow, "Logs experiments/metrics", "HTTP")
-Rel(training, minio, "Stores updated model artifact", "S3/HTTP")
-Rel(mlflow, postgres, "stores results", "SQL")
+Rel(training, minio, "fetchs training data", "S3/HTTP")
+Rel(mlflow, postgres, "stores meta data", "SQL")
+Rel(mlflow, minio, "uploads best model", "S3/HTTP")
+
 
 %% Styling for lines (optional)
+UpdateElementStyle(training, $bgColor="blue")
+UpdateElementStyle(trainingDag, $bgColor="blue")
+UpdateElementStyle(inference, $bgColor="blue")
+UpdateElementStyle(ingestion, $bgColor="blue")
+
+
 UpdateRelStyle(user, minio, $textColor="#ef4444", $lineColor="#ef4444", $offsetX="0", $offsetY="-40")
 UpdateRelStyle(trainingDag, training, $textColor="#3b82f6", $lineColor="#3b82f6", $offsetX="-100", $offsetY="50")
 UpdateRelStyle(trainingDag, minio, $textColor="#3b82f6", $lineColor="#3b82f6", $offsetX="-140", $offsetY="-50")
 UpdateRelStyle(training, minio, $textColor="#a855f7", $lineColor="#a855f7", $offsetX="-100", $offsetY="-40")
 UpdateRelStyle(training, mlflow, $textColor="#a855f7", $lineColor="#a855f7", $offsetX="-50", $offsetY="-50")
-UpdateRelStyle(mlflow, postgres, $textColor="#a855f7", $lineColor="#a855f7", $offsetX="-40", $offsetY="-60")
+UpdateRelStyle(mlflow, postgres, $textColor="blue", $lineColor="blue", $offsetX="-40", $offsetY="-60")
+UpdateRelStyle(mlflow, minio, $textColor="#blue", $lineColor="blue", $offsetX="-49", $offsetY="-60")
