@@ -22,7 +22,7 @@ stages:
   - pages
 
 variables:
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
@@ -67,7 +67,7 @@ unit_test:
       - htmlcov                  # coverage html (optional)
   after_script:
     # produce JUnit XML for GitLab test report (optional but helpful)
-    - pytest tests/unit -q --junitxml=junit.xml || true
+    - pytest tests -q --junitxml=junit.xml || true
   coverage: '/^TOTAL.*\s+(\d+\%)$/'   # parses “TOTAL …  85%” from pytest‑cov output
 
 
