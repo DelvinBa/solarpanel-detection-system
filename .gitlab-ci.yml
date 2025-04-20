@@ -1,16 +1,10 @@
-stages:
-  - lint
-  - test
-  - build
-  - deploy
-  - pages
 
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
   DOCKER_HOST: tcp://docker:2375
   IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 
@@ -20,12 +14,6 @@ stages:
   - build
   - deploy
   - pages
-
-variables:
-  PYTHON_VERSION: "3.11"
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 # ---------------------------- #
 # 1. LINT
