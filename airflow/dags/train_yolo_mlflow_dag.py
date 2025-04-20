@@ -61,7 +61,7 @@ EPOCHS = Variable.get('yolo_epochs', default_var=3)
 BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://172.20.0.11:5000")
+MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://3.88.102.215:5001")
 # Add fallback MLflow tracking URI options
 MLFLOW_FALLBACK_URIS = [
     "http://mlflow:5000",
