@@ -79,11 +79,32 @@ Key features:
    - URL: http://localhost:8080
    - Credentials: `admin:admin`
 
-2. Execute `1-split_traintest` DAG:
-   - This DAG splits the dataset into training and testing sets, ensuring that the model is trained on a diverse set of data.
+2. Dataset Preparation:
+   - Upload your training dataset to MinIO:
+     - Access MinIO at http://localhost:9001 (credentials: `minioadmin:minioadmin`)
+     - Navigate to the `training-data` bucket
+     - Create folders named `images` and `labels` if they don't exist
+     - Upload images (.jpg/.png) to the `images` folder
+     - Upload corresponding YOLO format labels (.txt) to the `labels` folder
+   - The label files must follow YOLO format: one line per object with `class x_center y_center width height`
+   - Each label file should have the same name as its corresponding image file (different extension)
 
-3. Execute `2-train_yolo` DAG:
-   - This DAG trains the YOLO model using the training dataset, updating the model parameters to improve accuracy.
+3. Execute `1-split_traintest` DAG at http://localhost:8080:
+   - This DAG splits the dataset into training and testing sets
+   - It creates train/val folders in MinIO with appropriate distribution of data
+   - Verify the split in MinIO under the `training-data/train` and `training-data/val` folders
+
+4. Execute `2-train_yolo` DAG at http://localhost:8080:
+   - This DAG trains the YOLO model using the prepared datasets
+   - Training parameters are configured in the DAG file
+   - Model checkpoints are saved during training
+   - The best model is selected based on validation performance
+   - Training metrics are logged and can be viewed in the Airflow logs
+
+5. Model Persistence:
+   - The best model weights are saved to the `models` bucket in MinIO
+   - The latest model is automatically used for inference
+   - Previous model versions are retained for comparison and rollback if needed
 
 ### Run Inference Process
 1. Access Airflow Webserver:
