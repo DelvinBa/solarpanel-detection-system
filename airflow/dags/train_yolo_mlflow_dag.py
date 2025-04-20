@@ -46,19 +46,39 @@ logger = logging.getLogger(__name__)
 # These configuration variables can be modified through Airflow Variables
 # to adapt to different environments without changing the code
 
-# MLflow configuration
-# Default MLflow settings for different environments - override via Airflow Variables
-# - mlflow_tracking_uri: Override to set a custom tracking URI for all environments
-# - mlflow_ec2_ip: IP address of MLflow server when running on EC2
-# - mlflow_ec2_port: Port of MLflow server when running on EC2
-# - mlflow_local_uri: URI for local development environment
+# Project directories
+DAGS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.join(DAGS_FOLDER, "models")
+OUTPUT_DIR = "/opt/airflow/yolo_runs"
 
-# MinIO configuration
-# Default is to use environment variables, with fallbacks to these values
-# - MINIO_ENDPOINT, MINIO_PORT: Connection details for MinIO server
-# - MINIO_ACCESS_KEY, MINIO_SECRET_KEY: Credentials for MinIO
-# - MINIO_BUCKET: Bucket for MLflow artifacts
-# =====================================================================
+# MinIO configuration - define this first as it's used by MLflow config
+MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
+MINIO_PORT = os.getenv('MINIO_PORT', '9000')
+MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'mlflow')
+MINIO_MODELS_BUCKET = os.getenv('MINIO_MODELS_BUCKET', 'models')  # Bucket for model storage
+MINIO_LOGS_BUCKET = os.getenv('MINIO_LOGS_BUCKET', 'training-logs')  # Bucket for logs storage
+MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
+TRAIN_DATA_PREFIX = "data/processed/SateliteData/"
+
+# Training parameters (can be overridden by Airflow Variables)
+EPOCHS = int(Variable.get('yolo_epochs', default_var=3))
+BATCH_SIZE = int(Variable.get('yolo_batch_size', default_var=5))
+IMAGE_SIZE = int(Variable.get('yolo_img_size', default_var=640))
+MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
+
+# Model paths and settings
+DEFAULT_YOLO_MODEL = Variable.get('yolo_model_name', default_var='yolov8n.pt')
+FALLBACK_MODEL_PATHS = [
+    os.path.join(PROJECT_DIR, "best.pt"),
+    os.path.join(PROJECT_DIR, "yolov8n.pt"),
+    os.path.join(DAGS_FOLDER, "models", "best.pt"),
+    'yolov8n.pt'  # This will use the default Ultralytics pre-trained model
+]
+
+# Temp directory for downloading data
+TEMP_DATA_DIR = Variable.get('yolo_temp_data_dir', default_var='/tmp/yolo_training_data')
 
 # Function to determine if running on EC2
 def is_running_on_ec2():
@@ -76,7 +96,7 @@ def get_mlflow_tracking_uri():
     if is_running_on_ec2():
         # Use the EC2 MLflow server IP from a dedicated Variable
         ec2_mlflow_ip = Variable.get('mlflow_ec2_ip', default_var="3.88.102.215")
-        ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5001")
+        ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5000")
         ec2_mlflow_uri = f"http://{ec2_mlflow_ip}:{ec2_mlflow_port}"
         logger.info(f"Running on EC2, using MLflow server at {ec2_mlflow_uri}")
         return ec2_mlflow_uri
@@ -85,6 +105,49 @@ def get_mlflow_tracking_uri():
     local_uri = Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000")
     logger.info(f"Running in local/dev environment, using MLflow server at {local_uri}")
     return local_uri
+
+# Find best available model path
+def get_best_model_path():
+    """
+    Find the best available model path by checking multiple possible locations.
+    Returns the first valid model path found.
+    """
+    # First, check if there's a model specified in Airflow Variable
+    var_model_path = Variable.get('yolo_model_path', default_var=None)
+    if var_model_path and os.path.exists(var_model_path):
+        logger.info(f"Using model path from Airflow Variable: {var_model_path}")
+        return var_model_path
+        
+    # Then try all fallback paths
+    for model_path in FALLBACK_MODEL_PATHS:
+        if os.path.exists(model_path):
+            logger.info(f"Using existing model at path: {model_path}")
+            return model_path
+    
+    # If we got here and no model was found, return the default (will be downloaded by ultralytics)
+    logger.info(f"No existing model found, will use default: {DEFAULT_YOLO_MODEL}")
+    return DEFAULT_YOLO_MODEL
+
+# Set MLflow tracking URI and fallback options
+MLFLOW_TRACKING_URI = get_mlflow_tracking_uri()
+MLFLOW_FALLBACK_URIS = [
+    Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000"),
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "http://tracking_server:5001",
+    "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
+]
+
+# Set MLflow to use MinIO for artifact storage by default
+MLFLOW_S3_ENDPOINT_URL = f"http://{MINIO_ENDPOINT}:{MINIO_PORT}"
+os.environ["MLFLOW_S3_ENDPOINT_URL"] = MLFLOW_S3_ENDPOINT_URL
+os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+os.environ["MLFLOW_S3_IGNORE_TLS"] = "true"  # Skip TLS verification for MinIO
+
+# Use S3/MinIO as the default artifact store unless explicitly disabled
+USE_S3_ARTIFACT_STORE = Variable.get('mlflow_use_s3_artifacts', default_var='true').lower() == 'true'
+DEFAULT_ARTIFACT_ROOT = f"s3://{MINIO_BUCKET}" if USE_S3_ARTIFACT_STORE else None
 
 # Default arguments for the DAG
 default_args = {
@@ -106,35 +169,6 @@ dag = DAG(
     catchup=False,
     tags=['yolo', 'mlflow', 'solar-panel', 'training', 'computer-vision'],
 )
-
-# Training parameters (can be overridden by Airflow Variables)
-EPOCHS = int(Variable.get('yolo_epochs', default_var=3))
-BATCH_SIZE = int(Variable.get('yolo_batch_size', default_var=5))
-IMAGE_SIZE = int(Variable.get('yolo_img_size', default_var=640))
-MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = get_mlflow_tracking_uri()
-# Add fallback MLflow tracking URI options
-MLFLOW_FALLBACK_URIS = [
-    Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000"),
-    "http://mlflow:5000",
-    "http://tracking_server:5001",
-    "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
-]
-PROJECT_DIR = '/opt/airflow/dags/models'
-
-# MinIO configuration
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
-MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
-MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'mlflow')
-MINIO_MODELS_BUCKET = os.getenv('MINIO_MODELS_BUCKET', 'models')  # Bucket for model storage
-MINIO_LOGS_BUCKET = os.getenv('MINIO_LOGS_BUCKET', 'training-logs')  # Bucket for logs storage
-MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
-TRAIN_DATA_PREFIX = "data/processed/SateliteData/"
-
-# Temp directory for downloading data
-TEMP_DATA_DIR = Variable.get('yolo_temp_data_dir', default_var='/tmp/yolo_training_data')
 
 def initialize_minio_client():
     """Initialize and return MinIO client."""
@@ -450,26 +484,69 @@ def train_yolo_model(**kwargs):
     os.environ["MLFLOW_HTTP_REQUEST_TIMEOUT"] = "300"
     os.environ["MLFLOW_HTTP_REQUEST_MAX_RETRIES"] = "5"
     
+    # Configure MinIO as the artifact store for MLflow if enabled
+    if USE_S3_ARTIFACT_STORE:
+        os.environ["MLFLOW_S3_ENDPOINT_URL"] = MLFLOW_S3_ENDPOINT_URL
+        os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+        os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+        os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+        os.environ["MLFLOW_S3_IGNORE_TLS"] = "true"
+    
     # Try to connect to MLflow server
     mlflow_reachable = False
-    max_retries = 3
     
     # Try primary URI first, then fallbacks
     for tracking_uri in [MLFLOW_TRACKING_URI] + MLFLOW_FALLBACK_URIS:
         try:
             logger.info(f"Trying MLflow tracking URI: {tracking_uri}")
-            api_url = f"{tracking_uri}/api/2.0/mlflow/experiments/list"
-            response = requests.get(api_url, timeout=5)
             
-            if response.status_code == 200:
-                logger.info(f"✅ Connected to MLflow server at {tracking_uri}")
-                # Update global URI for other parts of the code
+            # First try to directly create a client as the most reliable test
+            try:
+                import mlflow
+                from mlflow.tracking import MlflowClient
+                
+                # Set the tracking URI
+                mlflow.set_tracking_uri(tracking_uri)
+                client = MlflowClient(tracking_uri=tracking_uri)
+                
+                # Just make a simple API call to test connection
+                experiments = client.search_experiments()
+                logger.info(f"✅ Connected to MLflow server at {tracking_uri} via client API")
                 os.environ["MLFLOW_TRACKING_URI"] = tracking_uri
                 MLFLOW_TRACKING_URI = tracking_uri
                 mlflow_reachable = True
                 break
-            else:
-                logger.warning(f"MLflow server returned status code {response.status_code}")
+            except Exception as client_error:
+                logger.debug(f"Client API connection failed: {client_error}")
+                
+                # Fall back to HTTP API test if client test fails
+                # The /api/2.0/mlflow/experiments/list endpoint might return 404 on some MLflow versions
+                # Try different API endpoints
+                api_endpoints = [
+                    "/api/2.0/mlflow/experiments/list",
+                    "/api/2.0/preview/mlflow/experiments/list",
+                    "/ajax-api/2.0/mlflow/experiments/list",
+                    "/ajaxapi/2.0/mlflow/experiments/list"
+                ]
+                
+                connection_success = False
+                for endpoint in api_endpoints:
+                    api_url = f"{tracking_uri}{endpoint}"
+                    try:
+                        response = requests.get(api_url, timeout=5)
+                        # Accept 200 or 404 (might mean the endpoint exists but returns a different format)
+                        if response.status_code == 200 or response.status_code == 404:
+                            logger.info(f"✅ MLflow server responding at {api_url} with status {response.status_code}")
+                            os.environ["MLFLOW_TRACKING_URI"] = tracking_uri
+                            MLFLOW_TRACKING_URI = tracking_uri
+                            mlflow_reachable = True
+                            connection_success = True
+                            break
+                    except Exception as e:
+                        logger.debug(f"API endpoint {endpoint} failed: {e}")
+                        
+                if connection_success:
+                    break
         except requests.exceptions.Timeout:
             logger.warning(f"Connection to MLflow at {tracking_uri} timed out")
         except requests.exceptions.ConnectionError:
@@ -560,7 +637,16 @@ def train_yolo_model(**kwargs):
                 if experiment:
                     experiment_id = experiment.experiment_id
                 else:
-                    experiment_id = mlflow.create_experiment(experiment_name)
+                    # Create a new experiment with explicit artifact location if using S3
+                    if USE_S3_ARTIFACT_STORE and DEFAULT_ARTIFACT_ROOT:
+                        artifact_location = f"{DEFAULT_ARTIFACT_ROOT}/{experiment_name}"
+                        logger.info(f"Creating new experiment with artifact location: {artifact_location}")
+                        experiment_id = mlflow.create_experiment(
+                            experiment_name, 
+                            artifact_location=artifact_location
+                        )
+                    else:
+                        experiment_id = mlflow.create_experiment(experiment_name)
                     
             except Exception as mlflow_error:
                 logger.error(f"Error setting up MLflow: {str(mlflow_error)}")
@@ -570,35 +656,53 @@ def train_yolo_model(**kwargs):
         from ultralytics import YOLO
         
         # Create output directory
-        output_dir = Path("/opt/airflow/yolo_runs")
+        output_dir = Path(OUTPUT_DIR)
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # Generate run ID
         run_id = str(uuid.uuid4())
         run_name = f"yolo_train_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        # Load model
-        if Path(MODEL_NAME).exists():
-            model = YOLO(str(Path(MODEL_NAME)))
-        else:
-            model = YOLO(MODEL_NAME)
+        # Load model - use our get_best_model_path function to find the best available model
+        model_path_to_use = get_best_model_path()
+        logger.info(f"Loading pre-trained model from: {model_path_to_use}")
+        model = YOLO(model_path_to_use)
         
         # Start MLflow tracking if available
         mlflow_run = None
         if use_mlflow:
             try:
-                mlflow_run = mlflow.start_run(experiment_id=experiment_id, run_name=run_name)
+                # Set run-specific artifact location for better organization
+                if USE_S3_ARTIFACT_STORE and DEFAULT_ARTIFACT_ROOT:
+                    run_artifact_location = f"{DEFAULT_ARTIFACT_ROOT}/{experiment_name}/{run_name}"
+                    logger.info(f"Starting run with artifact location: {run_artifact_location}")
+                    
+                    # Use artifact_location parameter if available in this MLflow version
+                    try:
+                        mlflow_run = mlflow.start_run(
+                            experiment_id=experiment_id, 
+                            run_name=run_name,
+                            artifact_location=run_artifact_location
+                        )
+                    except TypeError:
+                        # Older MLflow versions don't support artifact_location in start_run
+                        logger.info("MLflow version doesn't support artifact_location in start_run, using experiment default")
+                        mlflow_run = mlflow.start_run(experiment_id=experiment_id, run_name=run_name)
+                else:
+                    mlflow_run = mlflow.start_run(experiment_id=experiment_id, run_name=run_name)
+                
                 run_id = mlflow_run.info.run_id
                 
                 # Log parameters
-                params = {
-                    "model": MODEL_NAME,
+                logger.info("Logging parameters")
+                # Use the actual model path that was used for training, or get_best_model_path() as fallback
+                actual_model_name = model_path_to_use.split('/')[-1] if model_path_to_use else get_best_model_path()
+                mlflow.log_params({
+                    "model_type": actual_model_name,
                     "epochs": EPOCHS,
                     "batch_size": BATCH_SIZE,
-                    "img_size": IMAGE_SIZE,
-                    "data_path": str(data_path)
-                }
-                mlflow.log_params(params)
+                    "image_size": IMAGE_SIZE
+                })
             except Exception as start_run_error:
                 logger.error(f"Failed to start MLflow run: {str(start_run_error)}")
                 use_mlflow = False
@@ -664,6 +768,53 @@ def train_yolo_model(**kwargs):
             try:
                 mlflow.log_metrics(metrics)
                 logger.info(f"Logged metrics to MLflow: {metrics}")
+                
+                # Log model to MLflow (only if MLflow is available)
+                try:
+                    logger.info("Attempting to log model with mlflow.ultralytics.log_model")
+                    # Log model with explicit artifact path structure
+                    artifact_path = "model"
+                    mlflow.ultralytics.log_model(model, artifact_path=artifact_path)
+                    logger.info(f"Successfully logged model with ultralytics flavor to {artifact_path}")
+                    
+                    # Also log best model weights as a separate artifact
+                    if best_model_path and os.path.exists(best_model_path):
+                        weights_artifact_path = "weights"
+                        mlflow.log_artifact(str(best_model_path), weights_artifact_path)
+                        logger.info(f"Logged best weights to {weights_artifact_path}")
+                        
+                    # Log plots if they exist
+                    plots_dir = run_dir / "plots"
+                    if plots_dir.exists():
+                        mlflow.log_artifacts(str(plots_dir), "plots")
+                        logger.info("Logged plots to MLflow")
+                except (ImportError, AttributeError) as flavor_error:
+                    logger.warning(f"Failed to use ultralytics flavor: {str(flavor_error)}, falling back to PyFunc")
+                    # Fallback to generic PyFunc model
+                    from mlflow.pyfunc import PythonModel
+                    
+                    class YOLOWrapper(PythonModel):
+                        def load_context(self, context):
+                            from ultralytics import YOLO
+                            self.model = YOLO(context.artifacts["yolo_model"])
+                        
+                        def predict(self, context, model_input):
+                            return "YOLO model wrapper"
+                    
+                    # Log the model file directly as an artifact first
+                    weights_artifact_path = "yolo_model_file"
+                    mlflow.log_artifact(model_path_to_use, weights_artifact_path)
+                    logger.info(f"Logged model weights to {weights_artifact_path}")
+                    
+                    # Then log the PyFunc model
+                    artifact_path = "model"
+                    logger.info(f"Logging model with PyFunc flavor to {artifact_path}")
+                    mlflow.pyfunc.log_model(
+                        artifact_path=artifact_path,
+                        python_model=YOLOWrapper(),
+                        artifacts={"yolo_model": model_path_to_use}
+                    )
+                    logger.info("Successfully logged model with PyFunc flavor")
             except Exception as metrics_error:
                 logger.error(f"Failed to log metrics to MLflow: {str(metrics_error)}")
         
@@ -705,19 +856,6 @@ def train_yolo_model(**kwargs):
             except Exception as minio_upload_error:
                 logger.error(f"Error uploading to MinIO: {str(minio_upload_error)}")
         
-        # Log model artifacts to MLflow
-        if use_mlflow and best_model_path.exists():
-            try:
-                mlflow.ultralytics.log_model(model, artifact_path="model")
-                mlflow.log_artifact(str(best_model_path), "best_model")
-                
-                # Log plots if they exist
-                plots_dir = run_dir / "plots"
-                if plots_dir.exists():
-                    mlflow.log_artifacts(str(plots_dir), "plots")
-            except Exception as log_error:
-                logger.error(f"Error logging artifacts to MLflow: {str(log_error)}")
-        
         # Close MLflow run
         if use_mlflow and mlflow_run:
             try:
@@ -757,7 +895,7 @@ def train_yolo_model(**kwargs):
                 cmd = [
                     sys.executable, script_path,
                     "--data_dir", data_dir,
-                    "--model", MODEL_NAME,
+                    "--model", model_path_to_use,
                     "--epochs", str(EPOCHS),
                     "--batch", str(BATCH_SIZE),
                     "--img_size", str(IMAGE_SIZE)
@@ -1103,16 +1241,28 @@ def register_model_to_production(**kwargs):
             logger.info(f"Trying MLflow tracking URI: {tracking_uri}")
             mlflow.set_tracking_uri(tracking_uri)
             
-            # Test connection
-            api_url = f"{tracking_uri}/api/2.0/mlflow/experiments/list"
-            response = requests.get(api_url, timeout=5)
-            if response.status_code == 200:
-                logger.info(f"✅ Successfully connected to MLflow at {tracking_uri}")
-                mlflow_reachable = True
-                # Update global URI for other parts of the code
-                MLFLOW_TRACKING_URI = tracking_uri
-                mlflow_client = MlflowClient()
+            # Test connection with multiple possible endpoints
+            connection_success = False
+            for endpoint in ["/api/2.0/mlflow/experiments/list", "/ajaxapi/2.0/mlflow/experiments/list", 
+                            "/ajax-api/2.0/mlflow/experiments/list", "/api/2.0/preview/mlflow/experiments/list"]:
+                try:
+                    api_url = f"{tracking_uri}{endpoint}"
+                    logger.info(f"Testing MLflow connection with: {api_url}")
+                    response = requests.get(api_url, timeout=10)
+                    # Accept 200 or 404 (endpoint might exist but returns different format)
+                    if response.status_code in [200, 404]:
+                        logger.info(f"✅ Successfully connected to MLflow at {tracking_uri} (endpoint: {endpoint})")
+                        mlflow_reachable = True
+                        MLFLOW_TRACKING_URI = tracking_uri
+                        mlflow_client = MlflowClient(tracking_uri=tracking_uri)
+                        connection_success = True
+                        break
+                except Exception as endpoint_error:
+                    logger.debug(f"Failed to connect with endpoint {endpoint}: {str(endpoint_error)}")
+            
+            if connection_success:
                 break
+                
         except requests.exceptions.Timeout:
             logger.warning(f"Connection to MLflow at {tracking_uri} timed out")
         except requests.exceptions.ConnectionError:
@@ -1126,13 +1276,16 @@ def register_model_to_production(**kwargs):
         os.makedirs("/opt/airflow/mlruns", exist_ok=True)
         mlflow.set_tracking_uri(local_tracking_uri)
         MLFLOW_TRACKING_URI = local_tracking_uri
-        mlflow_client = MlflowClient()
+        mlflow_client = MlflowClient(tracking_uri=local_tracking_uri)
     
     # Set up S3/MinIO environment variables
-    os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
-    os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
-    os.environ["MLFLOW_S3_ENDPOINT_URL"] = f"http://{MINIO_ENDPOINT}:{MINIO_PORT}"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+    if USE_S3_ARTIFACT_STORE:
+        os.environ["MLFLOW_S3_ENDPOINT_URL"] = MLFLOW_S3_ENDPOINT_URL
+        os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+        os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+        os.environ["AWS_DEFAULT_REGION"] = "us-east-1"  # Default region for MinIO
+        os.environ["MLFLOW_S3_IGNORE_TLS"] = "true"
+        logger.info(f"Configured MLflow to use MinIO/S3 artifact store at {MLFLOW_S3_ENDPOINT_URL}")
 
     logger.info(f"Registering model from run {run_id} with MLflow at {MLFLOW_TRACKING_URI}")
     logger.info(f"Model is available at: {model_path} and in MinIO: {minio_model_path}")
@@ -1145,155 +1298,215 @@ def register_model_to_production(**kwargs):
     logger.info(f"Model will be registered as {stage} (mAP50={metrics.get('mAP50', 0):.4f})")
     
     # Initialize MinIO client to ensure model in MinIO is accessible
+    temp_model_path = None
     try:
         minio_client = initialize_minio_client()
         logger.info("Successfully connected to MinIO for model registration")
+        
+        # Download model from MinIO for local access if available
+        if minio_model_path and minio_client:
+            try:
+                # Example: s3://models/yolo_train_20240420_123456/best.pt
+                # Extract bucket and object path
+                s3_parts = minio_model_path.replace('s3://', '').split('/', 1)
+                if len(s3_parts) == 2:
+                    bucket_name, object_path = s3_parts
+                    
+                    # Create a temporary file to download the model
+                    with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as temp_file:
+                        temp_path = temp_file.name
+                    
+                    # Download model from MinIO
+                    logger.info(f"Downloading model from MinIO: {bucket_name}/{object_path}")
+                    minio_client.fget_object(bucket_name, object_path, temp_path)
+                    logger.info(f"Model downloaded to {temp_path}")
+                    
+                    # Use this downloaded model for MLflow registration
+                    temp_model_path = temp_path
+                    # If we successfully downloaded from MinIO, prioritize this path
+                    if os.path.exists(temp_model_path) and os.path.getsize(temp_model_path) > 0:
+                        model_path = temp_model_path
+                        logger.info(f"Will use MinIO model from {model_path} for registration")
+            except Exception as minio_download_error:
+                logger.warning(f"Failed to download model from MinIO: {str(minio_download_error)}")
     except Exception as minio_error:
         logger.warning(f"Could not initialize MinIO client: {str(minio_error)}")
         minio_client = None
     
     try:
+        # Ensure model_path exists and is valid
+        if not model_path or not os.path.exists(model_path):
+            raise ValueError(f"Model path {model_path} does not exist")
+        
         # Check if the run exists in MLflow
         run_exists = False
         try:
             if run_id:
                 mlflow_client.get_run(run_id)
                 run_exists = True
-        except Exception:
-            logger.warning(f"Could not find run with id={run_id}, falling back to direct model logging")
+                logger.info(f"Found existing MLflow run with ID {run_id}")
+        except Exception as run_check_error:
+            logger.warning(f"Could not find run with id={run_id}: {str(run_check_error)}. Will create new run.")
+        
+        model_registered = False
+        model_details = None
         
         if run_exists:
-            # Register model using existing run
-            model_details = mlflow.register_model(
-                model_uri=f"runs:/{run_id}/model",
-                name="yolo-solar-panel-detector"
-            )
-        else:
-            # If run doesn't exist, create a new run and log the model
+            try:
+                # Register model using existing run
+                logger.info(f"Registering model from existing run {run_id}")
+                model_details = mlflow.register_model(
+                    model_uri=f"runs:/{run_id}/model",
+                    name="yolo-solar-panel-detector"
+                )
+                model_registered = True
+                logger.info(f"Successfully registered model from existing run: {model_details}")
+            except Exception as register_error:
+                logger.warning(f"Failed to register model from existing run: {str(register_error)}. Will create new run.")
+        
+        # If existing run registration failed or run doesn't exist, create a new run
+        if not model_registered:
             with mlflow.start_run() as new_run:
                 try:
                     from ultralytics import YOLO
                     
-                    # Prefer using MinIO model path if available
-                    if minio_model_path and minio_client:
-                        # Example: s3://models/yolo_train_20240420_123456/best.pt
-                        # Extract bucket and object path
-                        s3_parts = minio_model_path.replace('s3://', '').split('/', 1)
-                        if len(s3_parts) == 2:
-                            bucket_name, object_path = s3_parts
-                            
-                            # Create a temporary file to download the model
-                            with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as temp_file:
-                                temp_path = temp_file.name
-                            
-                            # Download model from MinIO
-                            logger.info(f"Downloading model from MinIO: {bucket_name}/{object_path}")
-                            minio_client.fget_object(bucket_name, object_path, temp_path)
-                            logger.info(f"Model downloaded to {temp_path}")
-                            
-                            # Load model from temp file
-                            model = YOLO(temp_path)
-                        else:
-                            logger.warning(f"Invalid MinIO path format: {minio_model_path}, using local path")
-                            model = YOLO(model_path)
-                    else:
-                        # Use local model path as fallback
-                        model = YOLO(model_path)
+                    # Load the model from the best available path
+                    logger.info(f"Loading YOLO model from {model_path}")
+                    model = YOLO(model_path)
                     
-                    # Log model
+                    # Log model to MLflow
                     try:
-                        mlflow.ultralytics.log_model(model, artifact_path="model")
-                    except (ImportError, AttributeError):
+                        logger.info("Attempting to log model with mlflow.ultralytics.log_model")
+                        # Log model with explicit artifact path structure
+                        artifact_path = "model"
+                        mlflow.ultralytics.log_model(model, artifact_path=artifact_path)
+                        logger.info(f"Successfully logged model with ultralytics flavor to {artifact_path}")
+                        
+                        # Also log best model weights as a separate artifact
+                        if best_model_path and os.path.exists(best_model_path):
+                            weights_artifact_path = "weights"
+                            mlflow.log_artifact(str(best_model_path), weights_artifact_path)
+                            logger.info(f"Logged best weights to {weights_artifact_path}")
+                    except (ImportError, AttributeError) as flavor_error:
+                        logger.warning(f"Failed to use ultralytics flavor: {str(flavor_error)}, falling back to PyFunc")
                         # Fallback to generic PyFunc model
                         from mlflow.pyfunc import PythonModel
                         
                         class YOLOWrapper(PythonModel):
                             def load_context(self, context):
+                                from ultralytics import YOLO
                                 self.model = YOLO(context.artifacts["yolo_model"])
+                            
                             def predict(self, context, model_input):
                                 return "YOLO model wrapper"
                         
-                        # Use the appropriate model path
-                        model_file_path = temp_path if 'temp_path' in locals() else model_path
+                        # Log the model file directly as an artifact first
+                        weights_artifact_path = "yolo_model_file"
+                        mlflow.log_artifact(model_path, weights_artifact_path)
+                        logger.info(f"Logged model weights to {weights_artifact_path}")
                         
+                        # Then log the PyFunc model
+                        artifact_path = "model"
+                        logger.info(f"Logging model with PyFunc flavor to {artifact_path}")
                         mlflow.pyfunc.log_model(
-                            artifact_path="model",
+                            artifact_path=artifact_path,
                             python_model=YOLOWrapper(),
-                            artifacts={"yolo_model": model_file_path}
+                            artifacts={"yolo_model": model_path}
                         )
+                        logger.info("Successfully logged model with PyFunc flavor")
                     
                     # Log metrics and parameters
                     if metrics:
+                        logger.info(f"Logging metrics: {metrics}")
                         mlflow.log_metrics(metrics)
                     
+                    logger.info("Logging parameters")
+                    # Use the actual model path that was used for training, or get_best_model_path() as fallback
+                    actual_model_name = model_path.split('/')[-1] if model_path else get_best_model_path()
                     mlflow.log_params({
-                        "model_type": MODEL_NAME,
+                        "model_type": actual_model_name,
                         "epochs": EPOCHS,
                         "batch_size": BATCH_SIZE,
                         "image_size": IMAGE_SIZE
                     })
                     
                     # Register the model
+                    logger.info(f"Registering model from new run {new_run.info.run_id}")
                     model_details = mlflow.register_model(
                         model_uri=f"runs:/{new_run.info.run_id}/model",
                         name="yolo-solar-panel-detector"
                     )
-                    
-                    # Clean up temp file if it was created
-                    if 'temp_path' in locals():
-                        try:
-                            os.unlink(temp_path)
-                            logger.info(f"Temporary model file {temp_path} deleted")
-                        except:
-                            pass
+                    model_registered = True
+                    logger.info(f"Successfully registered model from new run: {model_details}")
                     
                 except Exception as e:
-                    logger.error(f"Error logging model: {str(e)}")
-                    # Create registered model without version as fallback
-                    model_details = mlflow_client.create_registered_model(name="yolo-solar-panel-detector")
-                    # Add flag to skip stage transition
-                    model_details.skip_transition = True
+                    logger.error(f"Error during model logging and registration: {str(e)}")
+                    try:
+                        # Simplest fallback: just register the model name without a version
+                        logger.warning("Attempting to create registered model without version as fallback")
+                        model_details = mlflow_client.create_registered_model(name="yolo-solar-panel-detector")
+                        # Add flag to skip stage transition
+                        model_details.skip_transition = True
+                    except Exception as fallback_error:
+                        logger.error(f"Even fallback registration failed: {str(fallback_error)}")
+        
+        # Clean up temp file if it was created
+        if temp_model_path and os.path.exists(temp_model_path):
+            try:
+                os.unlink(temp_model_path)
+                logger.info(f"Temporary model file {temp_model_path} deleted")
+            except Exception as cleanup_error:
+                logger.warning(f"Failed to clean up temp file: {str(cleanup_error)}")
         
         # Handle model version transition
-        if hasattr(model_details, 'version') and not hasattr(model_details, 'skip_transition'):
-            version = model_details.version
-            if isinstance(version, str):
-                version = int(version)
-            
-            if version > 0:
-                # Transition model to appropriate stage
-                mlflow_client.transition_model_version_stage(
-                    name=model_details.name,
-                    version=str(version),
-                    stage=stage
-                )
+        if model_details and model_registered and hasattr(model_details, 'version') and not hasattr(model_details, 'skip_transition'):
+            try:
+                version = model_details.version
+                if isinstance(version, str):
+                    version = int(version)
                 
-                # Add description with metrics
-                description = (
-                    f"YOLO model for solar panel detection.\n"
-                    f"Metrics: mAP50={metrics.get('mAP50', 0):.4f}, "
-                    f"precision={metrics.get('precision', 0):.4f}, "
-                    f"recall={metrics.get('recall', 0):.4f}\n"
-                    f"Parameters: epochs={EPOCHS}, batch_size={BATCH_SIZE}, "
-                    f"img_size={IMAGE_SIZE}, model={MODEL_NAME}"
-                )
-                
-                mlflow_client.update_model_version(
-                    name=model_details.name,
-                    version=str(version),
-                    description=description
-                )
-                
-                logger.info(f"Model {model_details.name} version {version} registered as {stage}")
-        else:
+                if version > 0:
+                    # Transition model to appropriate stage
+                    logger.info(f"Transitioning model {model_details.name} version {version} to {stage}")
+                    mlflow_client.transition_model_version_stage(
+                        name=model_details.name,
+                        version=str(version),
+                        stage=stage
+                    )
+                    
+                    # Add description with metrics
+                    description = (
+                        f"YOLO model for solar panel detection.\n"
+                        f"Metrics: mAP50={metrics.get('mAP50', 0):.4f}, "
+                        f"precision={metrics.get('precision', 0):.4f}, "
+                        f"recall={metrics.get('recall', 0):.4f}\n"
+                        f"Parameters: epochs={EPOCHS}, batch_size={BATCH_SIZE}, "
+                        f"img_size={IMAGE_SIZE}, model={actual_model_name}"
+                    )
+                    
+                    mlflow_client.update_model_version(
+                        name=model_details.name,
+                        version=str(version),
+                        description=description
+                    )
+                    
+                    logger.info(f"Model {model_details.name} version {version} registered as {stage}")
+                else:
+                    logger.warning(f"Model version {version} is not valid for transition")
+            except Exception as transition_error:
+                logger.error(f"Failed to transition model version: {str(transition_error)}")
+        elif model_details and model_registered:
             logger.warning("Model registered but no valid version available for stage transition")
         
-        # Store model info for downstream tasks
-        kwargs['ti'].xcom_push(key='model_name', value=model_details.name)
-        kwargs['ti'].xcom_push(key='model_version', value=getattr(model_details, 'version', 'unknown'))
+        # Store model info for downstream tasks, even if just name without version
+        model_name = getattr(model_details, 'name', "yolo-solar-panel-detector") if model_details else "yolo-solar-panel-detector"
+        model_version = getattr(model_details, 'version', 'unknown') if model_details else 'unknown'
+        
+        kwargs['ti'].xcom_push(key='model_name', value=model_name)
+        kwargs['ti'].xcom_push(key='model_version', value=model_version)
         kwargs['ti'].xcom_push(key='model_stage', value=stage)
         
-        return getattr(model_details, 'version', None)
+        return model_version
     except Exception as e:
         logger.error(f"Error registering model: {str(e)}")
         raise

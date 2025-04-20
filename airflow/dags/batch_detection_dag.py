@@ -47,7 +47,7 @@ def get_mlflow_tracking_uri():
         if response.status_code == 200:
             # Use the EC2 MLflow server IP from a dedicated Variable
             ec2_mlflow_ip = Variable.get('mlflow_ec2_ip', default_var="3.88.102.215")
-            ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5001")
+            ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5000")
             ec2_mlflow_uri = f"http://{ec2_mlflow_ip}:{ec2_mlflow_port}"
             logger.info(f"Running on EC2, using MLflow server at {ec2_mlflow_uri}")
             return ec2_mlflow_uri
@@ -55,16 +55,17 @@ def get_mlflow_tracking_uri():
         pass
     
     # For local/development environment, prefer localhost or docker service name
-    local_uri = Variable.get('mlflow_local_uri', default_var="http://mlflow_server:5000")
+    local_uri = Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000")
     logger.info(f"Running in local/dev environment, using MLflow server at {local_uri}")
     return local_uri
 
 # Add fallback MLflow tracking URI options
 MLFLOW_TRACKING_URI = get_mlflow_tracking_uri()
 MLFLOW_FALLBACK_URIS = [
-    "http://mlflow_server:5000",
-    "http://mlflow:5000",
-    "http://mlflow_server:5001",
+    Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000"),
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "http://tracking_server:5001",
     "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
 ]
 
@@ -148,13 +149,41 @@ def get_latest_model(client):
                     logger.info(f"Trying MLflow tracking URI: {tracking_uri}")
                     mlflow.set_tracking_uri(tracking_uri)
                     
-                    # Test connection
-                    api_url = f"{tracking_uri}/api/2.0/mlflow/experiments/list"
-                    response = requests.get(api_url, timeout=5)  # Reduced timeout for faster fallback
-                    if response.status_code == 200:
-                        logger.info(f"Connected to MLflow server at {tracking_uri}")
+                    # First try to directly create a client as the most reliable test
+                    try:
+                        mlflow_client = MlflowClient(tracking_uri=tracking_uri)
+                        # Just make a simple API call to test connection
+                        experiments = mlflow_client.search_experiments()
+                        logger.info(f"Connected to MLflow server at {tracking_uri} via client API")
                         mlflow_reachable = True
                         break
+                    except Exception as client_error:
+                        logger.debug(f"Client API connection failed: {client_error}")
+                        
+                        # Fall back to HTTP API test if client test fails
+                        # The /api/2.0/mlflow/experiments/list endpoint might return 404 on some MLflow versions
+                        # Try different API endpoints
+                        api_endpoints = [
+                            "/api/2.0/mlflow/experiments/list",
+                            "/api/2.0/preview/mlflow/experiments/list",
+                            "/ajax-api/2.0/mlflow/experiments/list",
+                            "/ajaxapi/2.0/mlflow/experiments/list"
+                        ]
+                        
+                        for endpoint in api_endpoints:
+                            api_url = f"{tracking_uri}{endpoint}"
+                            try:
+                                response = requests.get(api_url, timeout=5)
+                                # Accept 200 or 404 (might mean the endpoint exists but returns a different format)
+                                if response.status_code == 200 or response.status_code == 404:
+                                    logger.info(f"MLflow server responding at {api_url} with status {response.status_code}")
+                                    mlflow_reachable = True
+                                    break
+                            except Exception as e:
+                                logger.debug(f"API endpoint {endpoint} failed: {e}")
+                                
+                        if mlflow_reachable:
+                            break
                 except requests.exceptions.Timeout:
                     logger.warning(f"Connection to MLflow at {tracking_uri} timed out")
                 except requests.exceptions.ConnectionError:
@@ -164,12 +193,12 @@ def get_latest_model(client):
             
             if mlflow_reachable:
                 # Try to get the latest Production model
-                client = MlflowClient()
+                mlflow_client = MlflowClient()
                 model_name = "yolo-solar-panel-detector"  # Match name in training DAG
                 
                 # Find models in Production stage first
                 try:
-                    production_versions = client.get_latest_versions(model_name, stages=["Production"])
+                    production_versions = mlflow_client.get_latest_versions(model_name, stages=["Production"])
                     if production_versions:
                         model_version = production_versions[0].version
                         logger.info(f"Found Production model {model_name} version {model_version}")
@@ -208,31 +237,32 @@ def get_latest_model(client):
         # Fall back to MinIO if MLflow didn't work
         logger.info("Falling back to MinIO for model retrieval")
         
+        # Make sure we're using the minio client, not the mlflow_client
+        minio_client = client  # Use the passed-in MinIO client
+        
         # Check if models bucket exists
-        if not client.bucket_exists(MODELS_BUCKET):
+        if not minio_client.bucket_exists(MODELS_BUCKET):
             logger.warning(f"Models bucket '{MODELS_BUCKET}' does not exist. Using fallback model.")
             return None, YOLO_MODEL_PATH
         
         # List all objects in the models bucket
         logger.info(f"Listing objects in '{MODELS_BUCKET}' bucket to find the latest model...")
-        objects = list(client.list_objects(MODELS_BUCKET, recursive=True))
+        objects = list(minio_client.list_objects(MODELS_BUCKET, recursive=True))
         
         # Filter for model files with 'best' in the name
         model_objects = [obj for obj in objects if obj.object_name.lower().endswith('.pt') and 'best' in obj.object_name.lower()]
         
         if not model_objects:
-            logger.warning(f"No model files found in '{MODELS_BUCKET}' bucket. Using fallback model.")
+            logger.warning(f"No best model found in {MODELS_BUCKET}. Using fallback model.")
             return None, YOLO_MODEL_PATH
         
-        # Sort by last modified time to get the latest model
-        model_objects.sort(key=lambda obj: obj.last_modified, reverse=True)
-        latest_model = model_objects[0]
-        
+        # Sort by last_modified to get the latest model
+        latest_model = sorted(model_objects, key=lambda obj: obj.last_modified, reverse=True)[0]
         logger.info(f"Found latest model in MinIO: {latest_model.object_name} (modified: {latest_model.last_modified})")
         
         # Download the model to a temporary file
         _, temp_file_path = tempfile.mkstemp(suffix='.pt')
-        client.fget_object(MODELS_BUCKET, latest_model.object_name, temp_file_path)
+        minio_client.fget_object(MODELS_BUCKET, latest_model.object_name, temp_file_path)
         logger.info(f"Downloaded latest model to {temp_file_path}")
         
         return latest_model.object_name, temp_file_path
@@ -258,9 +288,9 @@ def update_manifest_with_detection(client, file_identifier, max_confidence):
         manifest_df.loc[matching, 'max_confidence'] = max_confidence
         logger.info(f"Updated manifest entry for {file_identifier} with max_confidence: {max_confidence}")
     else:
-        # If the file is not present, optionally append a new entry.
-        new_row = {"pid": None, "vid": None, "minio_object": file_identifier, "max_confidence": max_confidence}
-        manifest_df = manifest_df.append(new_row, ignore_index=True)
+        # If the file is not present, create a new entry and concatenate with the existing DataFrame
+        new_row = pd.DataFrame({"pid": [None], "vid": [None], "minio_object": [file_identifier], "max_confidence": [max_confidence]})
+        manifest_df = pd.concat([manifest_df, new_row], ignore_index=True)
         logger.info(f"Appended new manifest entry for {file_identifier} with max_confidence: {max_confidence}")
     
     csv_data = manifest_df.to_csv(index=False)
