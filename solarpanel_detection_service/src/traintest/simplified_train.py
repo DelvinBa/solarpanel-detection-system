@@ -16,7 +16,7 @@ def setup_mlflow():
     try:
         print("Setting up MLflow...")
         # Set up the tracking URI to use the MLflow tracking server
-        tracking_uri = "http://localhost:5001"
+        tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
         print(f"Setting MLflow tracking URI: {tracking_uri}")
         mlflow.set_tracking_uri(tracking_uri)
         
@@ -94,7 +94,7 @@ def run_simple_training_log():
             print(f"Logged dummy artifact")
             
             print(f"Training completed. MLflow run ID: {run_id}")
-            print(f"View run details at: http://localhost:5001/experiments")
+            print(f"View run details at: {os.getenv('MLFLOW_UI_URL', 'http://localhost:5001/experiments')}")
     except Exception as e:
         print(f"Error in run_simple_training_log: {str(e)}")
         print(traceback.format_exc())

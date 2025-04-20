@@ -22,13 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install --no-cache-dir pip==23.1.2 setuptools==68.0.0 wheel==0.40.0
 
 # Install dependencies
-COPY solarpanel_detection_system/requirements.txt /tmp/
+COPY solarpanel_detection_service/requirements.txt /tmp/
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir -r /tmp/requirements.txt
 
+COPY solarpanel_detection_service/ /app/solarpanel_detection_service/
 # Copy application code
-COPY solarpanel_detection_system/ /app/solarpanel_detection_system/
-COPY solarpanel_detection_system/src/ /app/src/
+COPY solarpanel_detection_service/src/ /app/src/
 
 # Set up working directory
 WORKDIR /app

@@ -68,10 +68,10 @@ def init_minio_buckets():
 
 def upload_data_to_mlflow():
     """
-    Upload all data from /solarpanel_detection_system/data to the mlflow bucket
+    Upload all data from /solarpanel_detection_service/data to the mlflow bucket
     """
     client = get_minio_client()
-    data_dir = "/solarpanel_detection_system/data"
+    data_dir = "/solarpanel_detection_service/data"
     bucket_name = "mlflow"
     
     if not os.path.exists(data_dir):

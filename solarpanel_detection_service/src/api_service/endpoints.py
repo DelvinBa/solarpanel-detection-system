@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from .schemas import PipelineRequest, PipelineResponse, MultipleVidRequest
 # Use alias to avoid shadowing
-from solarpanel_detection_system.src.data_ingestion_service.run_ingestion_inference import (
+from solarpanel_detection_service.src.data_ingestion_service.run_ingestion_inference import (
     run_ingestion_by_city as ingestion_by_city,
     run_ingestion_by_vids as ingestion_by_vids
 )

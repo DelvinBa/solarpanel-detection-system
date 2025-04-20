@@ -11,12 +11,25 @@ x-airflow-common:
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres/postgres
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://postgres:postgres@postgres/postgres
     AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__FERNET_KEY: 'k8IfvPBpKOoDZSBbqHOQCya9gshVXcZ5-apiPfVHfB8='
+    # Secret key used for webserver security - must be same across all Airflow components
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'a-very-secret-key-that-should-be-changed-in-production'
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__CORE__DAGS_FOLDER: '/opt/airflow/dags'
+    # MinIO/S3 configuration - provide both sets of credentials
+    MINIO_ENDPOINT: 's3'
+    MINIO_PORT: '9000'
+    MINIO_ACCESS_KEY: 'minioadmin'
+    MINIO_SECRET_KEY: 'minioadmin'
+    # AWS credentials - these will be used in production
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+    # Set to "True" when using AWS S3 in production
+    MINIO_SECURE: ${MINIO_SECURE:-False}
   volumes:
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
@@ -53,6 +66,7 @@ services:
       - backend
     ports:
       - "${PG_PORT:-5432}:5432"
+    container_name: postgres
 
   redis:
     # Redis is limited to 7.2-bookworm due to licencing change
@@ -69,6 +83,7 @@ services:
       retries: 50
       start_period: 30s
     restart: always
+    container_name: redis
 
   airflow-webserver:
     <<: *airflow-common
@@ -86,6 +101,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    container_name: airflow-webserver
 
   airflow-scheduler:
     <<: *airflow-common
@@ -101,6 +117,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    container_name: airflow-scheduler
 
   airflow-worker:
     <<: *airflow-common
@@ -124,6 +141,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    container_name: airflow-worker
 
   airflow-triggerer:
     <<: *airflow-common
@@ -139,6 +157,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    container_name: airflow-triggerer
 
   airflow-init:
     <<: *airflow-common
@@ -163,6 +182,7 @@ services:
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
+    container_name: airflow-init
 
 
   s3:
@@ -193,7 +213,7 @@ services:
       dockerfile: ./docker/Dockerfile.minio-init
     container_name: minio_init
     volumes:
-      - ./solarpanel_detection_system:/solarpanel_detection_system
+      - ./solarpanel_detection_service:/solarpanel_detection_service
     depends_on:
       s3:
         condition: service_healthy
@@ -238,8 +258,8 @@ services:
     container_name: portainer
     restart: always
     ports:
-      - "9443:9443"  # HTTP Web UI
-      - "8000:8000"  # Edge agent API
+      - "9443:9443"  # HTTPS Web UI
+      - "8004:8000"  # Edge agent API - changed to avoid conflict
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -261,17 +281,19 @@ services:
     ports:
       - "8001:8000"  # Exposed on host:8001
     depends_on:
-      - solarpanel_detection_system
+      - solarpanel_detection_service
     networks:
       - backend
+    environment:
+      - DETECTION_SERVICE_URL=http://solarpanel_detection_service:8000
     volumes:
-      - ./solarpanel_detection_system:/solarpanel_detection_system
+      - ./solarpanel_detection_service:/solarpanel_detection_service
 
-  solarpanel_detection_system:
+  solarpanel_detection_service:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.solarpanel
-    container_name: solarpanel_detection_system
+    container_name: solarpanel_detection_service
     ports:
       - "8002:8000"  
     networks:

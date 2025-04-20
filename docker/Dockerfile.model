@@ -23,8 +23,8 @@ RUN mkdir -p /app/models /app/data /app/logs \
     && chmod -R 775 /app
 
 # Copy model code
-COPY solarpanel_detection_system/src/traintest /app/traintest
-COPY solarpanel_detection_system/src/modeling /app/modeling
+COPY solarpanel_detection_service/src/traintest /app/traintest
+COPY solarpanel_detection_service/src/modeling /app/modeling
 
 # Set working directory
 WORKDIR /app
