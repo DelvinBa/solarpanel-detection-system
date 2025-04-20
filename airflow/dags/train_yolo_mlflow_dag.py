@@ -89,7 +89,7 @@ def get_mlflow_tracking_uri():
     """Determine the appropriate MLflow tracking URI based on environment"""
     # First check if explicitly set in Airflow variables
     uri_from_variable = Variable.get('mlflow_tracking_uri', default_var=None)
-    if uri_from_variable and uri_from_variable != "http://3.88.102.215:5001":
+    if uri_from_variable and uri_from_variable != "http://172.31.21.44:5001":
         return uri_from_variable
         
     # Check if we're on EC2
