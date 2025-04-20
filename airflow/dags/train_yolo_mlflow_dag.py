@@ -83,7 +83,7 @@ TEMP_DATA_DIR = Variable.get('yolo_temp_data_dir', default_var='/tmp/yolo_traini
 
 # Function to determine if running on EC2
 def is_running_on_ec2():
-    return DEV_MODE
+    return not DEV_MODE
 
 # Function to determine MLflow tracking URI based on environment
 def get_mlflow_tracking_uri():
