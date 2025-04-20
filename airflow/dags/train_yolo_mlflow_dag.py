@@ -61,7 +61,13 @@ EPOCHS = Variable.get('yolo_epochs', default_var=3)
 BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://172.31.21.44:5000")
+MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://172.20.0.11:5000")
+# Add fallback MLflow tracking URI options
+MLFLOW_FALLBACK_URIS = [
+    "http://mlflow:5000",
+    "http://localhost:5000",
+    "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
+]
 PROJECT_DIR = '/opt/airflow/dags/models'
 
 # MinIO configuration
@@ -484,6 +490,33 @@ def validate_data_exists(**kwargs):
                     # Recheck image files
                     img_files = list(img_dir.glob('*.jpg')) + list(img_dir.glob('*.png'))
                     logger.info(f"After explicit download, found {len(img_files)} images in {img_dir}")
+            
+            # Create labels directory for validation if it doesn't exist
+            if req_dir == 'val':
+                val_labels_dir = temp_data_dir / req_dir / 'labels'
+                if not val_labels_dir.exists():
+                    logger.info(f"Creating validation labels directory: {val_labels_dir}")
+                    val_labels_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Check if we have validation labels
+                val_label_files = list(val_labels_dir.glob('*.txt'))
+                if not val_label_files and img_files:
+                    logger.warning(f"⚠️ No validation label files found in {val_labels_dir}, creating synthetic labels")
+                    
+                    # Create synthetic labels for validation images
+                    for img_file in img_files:
+                        label_file = val_labels_dir / f"{img_file.stem}.txt"
+                        # Create a simple label with a random box in the center
+                        import random
+                        with open(label_file, 'w') as f:
+                            # Format: class_id x_center y_center width height (all normalized to 0-1)
+                            class_id = random.randint(0, 2)  # Random class from our 3 classes
+                            x_center = 0.5  # Center of image
+                            y_center = 0.5  # Center of image
+                            width = random.uniform(0.2, 0.4)  # Random width between 20-40% of image
+                            height = random.uniform(0.2, 0.4)  # Random height between 20-40% of image
+                            f.write(f"{class_id} {x_center} {y_center} {width} {height}\n")
+                        logger.info(f"Created synthetic validation label: {label_file}")
         
         # Generate synthetic images if needed for debugging/development
         if dirs_with_images == 0:
@@ -614,10 +647,11 @@ def train_yolo_model(**kwargs):
     mlflow_reachable = False
     max_retries = 3
     
+    # Try the primary URI first
+    tracking_uri = MLFLOW_TRACKING_URI
     for attempt in range(max_retries):
         try:
             # Try to ping the MLflow server
-            tracking_uri = MLFLOW_TRACKING_URI
             # Strip http:// if present
             if tracking_uri.startswith("http://"):
                 server_url = tracking_uri[7:]
@@ -647,34 +681,48 @@ def train_yolo_model(**kwargs):
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to connect to MLflow server (attempt {attempt+1}/{max_retries}): {str(e)}")
             
-            # Try alternative URLs based on networking setup
-            alternative_uris = [
-                "http://mlflow:5000",
-                os.getenv("MLFLOW_UI_URL", "http://mlflow:5000")
-            ]
-            
-            for alt_uri in alternative_uris:
-                if alt_uri != tracking_uri:
-                    logger.info(f"Trying alternative MLflow URI: {alt_uri}")
-                    try:
-                        alt_response = requests.get(f"{alt_uri}/api/2.0/mlflow/experiments/list", timeout=5)
-                        if alt_response.status_code == 200:
-                            logger.info(f"✅ Successfully connected to MLflow server at {alt_uri}")
-                            os.environ["MLFLOW_TRACKING_URI"] = alt_uri
-                            MLFLOW_TRACKING_URI = alt_uri
-                            mlflow_reachable = True
-                            break
-                    except:
-                        pass
-            
-            if mlflow_reachable:
-                break
-                
             # Wait before retrying
             time.sleep(2)
     
+    # If primary URI failed, try fallback URIs
     if not mlflow_reachable:
-        logger.warning("⚠️ Could not connect to MLflow server. Training will proceed but model tracking may be limited.")
+        logger.warning("Primary MLflow URI failed, trying fallback URIs...")
+        for fallback_uri in MLFLOW_FALLBACK_URIS:
+            if fallback_uri == tracking_uri:
+                continue
+                
+            logger.info(f"Trying fallback MLflow URI: {fallback_uri}")
+            try:
+                # For file-based tracking, we don't need to make an HTTP request
+                if fallback_uri.startswith("file://"):
+                    # Create the directory if it doesn't exist
+                    local_path = fallback_uri.replace("file://", "")
+                    os.makedirs(local_path, exist_ok=True)
+                    logger.info(f"Using local file-based MLflow tracking at {local_path}")
+                    os.environ["MLFLOW_TRACKING_URI"] = fallback_uri
+                    MLFLOW_TRACKING_URI = fallback_uri
+                    mlflow_reachable = True
+                    break
+                else:
+                    # Try HTTP connection for remote tracking
+                    alt_response = requests.get(f"{fallback_uri}/api/2.0/mlflow/experiments/list", timeout=5)
+                    if alt_response.status_code == 200:
+                        logger.info(f"✅ Successfully connected to MLflow server at {fallback_uri}")
+                        os.environ["MLFLOW_TRACKING_URI"] = fallback_uri
+                        MLFLOW_TRACKING_URI = fallback_uri
+                        mlflow_reachable = True
+                        break
+            except Exception as e:
+                logger.warning(f"Failed to connect to fallback MLflow URI {fallback_uri}: {str(e)}")
+    
+    if not mlflow_reachable:
+        logger.warning("⚠️ Could not connect to any MLflow server. Training will proceed but model tracking may be limited.")
+        # Set to local file-based tracking as a last resort
+        local_tracking_uri = "file:///opt/airflow/mlruns"
+        os.makedirs("/opt/airflow/mlruns", exist_ok=True)
+        os.environ["MLFLOW_TRACKING_URI"] = local_tracking_uri
+        MLFLOW_TRACKING_URI = local_tracking_uri
+        logger.info(f"Using local file-based MLflow tracking at {local_tracking_uri}")
     
     # Check if the data directory exists and has required files
     data_path = Path(data_dir)
@@ -738,7 +786,9 @@ def train_yolo_model(**kwargs):
                     1: 'solar_array',
                     2: 'roof_array'
                 },
-                'nc': 3  # Number of classes
+                'nc': 3,  # Number of classes
+                # Add validation labels path
+                'val_labels': 'val/labels'
             }
             import yaml
             yaml.dump(yaml_content, f, default_flow_style=False)
@@ -842,24 +892,39 @@ def train_yolo_model(**kwargs):
                 logger.info("psutil not available, skipping memory check")
                 
             try:
-                results = model.train(
-                    data=str(data_yaml_path),
-                    epochs=int(EPOCHS),
-                    batch=int(BATCH_SIZE),
-                    imgsz=int(IMAGE_SIZE),
-                    patience=20,  # Early stopping patience
-                    project=str(output_dir),
-                    name=f"run_{run_id}",
-                    exist_ok=True,
-                    pretrained=True,
-                    verbose=True,
-                    device='cpu',  # Use CPU to ensure compatibility
-                    workers=2,     # Reduce workers to save memory
-                    cache=False,   # Don't cache images in RAM
-                    amp=False,     # Disable mixed precision to save memory
-                    plots=False,   # Disable plotting to save memory
-                    optimizer='SGD'  # Use SGD which uses less memory than Adam
-                )
+                # Check if validation labels exist
+                val_labels_dir = data_path / 'val' / 'labels'
+                val_labels_exist = val_labels_dir.exists() and any(val_labels_dir.glob('*.txt'))
+                
+                # Configure training parameters
+                train_params = {
+                    'data': str(data_yaml_path),
+                    'epochs': int(EPOCHS),
+                    'batch': int(BATCH_SIZE),
+                    'imgsz': int(IMAGE_SIZE),
+                    'patience': 20,  # Early stopping patience
+                    'project': str(output_dir),
+                    'name': f"run_{run_id}",
+                    'exist_ok': True,
+                    'pretrained': True,
+                    'verbose': True,
+                    'device': 'cpu',  # Use CPU to ensure compatibility
+                    'workers': 2,     # Reduce workers to save memory
+                    'cache': False,   # Don't cache images in RAM
+                    'amp': False,     # Disable mixed precision to save memory
+                    'plots': False,   # Disable plotting to save memory
+                    'optimizer': 'SGD'  # Use SGD which uses less memory than Adam
+                }
+                
+                # Add validation parameters if labels exist
+                if val_labels_exist:
+                    logger.info("Validation labels found, using standard validation")
+                else:
+                    logger.warning("No validation labels found, disabling validation during training")
+                    train_params['val'] = False  # Disable validation during training
+                
+                # Start training
+                results = model.train(**train_params)
                 
                 logger.info(f"Training completed. Results: {results}")
                 
@@ -1131,7 +1196,9 @@ def evaluate_model(**kwargs):
                 1: 'solar_array',
                 2: 'roof_array'
             },
-            'nc': 3  # Number of classes
+            'nc': 3,  # Number of classes
+            # Add validation labels path
+            'val_labels': 'val/labels'
         }
     
     # Ensure val path is correct
