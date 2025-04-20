@@ -26,6 +26,7 @@ COPY solarpanel_detection_service/requirements.txt /tmp/
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir -r /tmp/requirements.txt
 
+COPY solarpanel_detection_service/ /app/solarpanel_detection_service/
 # Copy application code
 COPY solarpanel_detection_service/src/ /app/src/
 
