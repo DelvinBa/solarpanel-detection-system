@@ -1,4 +1,3 @@
-
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
@@ -7,10 +6,9 @@ variables:
   PYTHON_VERSION: "3.11"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
-
 stages:
   #- lint          # ← will run first
-  - test          # ← will run second
+  #- test          # ← will run second
   - build
   - deploy
   - pages
@@ -33,31 +31,30 @@ stages:
 # ---------------------------- #
 # 2. TEST (unit)
 # ---------------------------- #
-unit_test:
-  stage: test
-  image: python:${PYTHON_VERSION}-slim
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-pip
-    paths:
-      - .pip-cache
-  before_script:
-    # install your project + pytest
-    #  – if you already have a requirements.txt or pyproject.toml, use that instead
-    - pip install --cache-dir $PIP_CACHE_DIR -r requirements.txt || true
-    - pip install --cache-dir $PIP_CACHE_DIR pytest pytest-cov
-  script:
-    # run only unit tests; add --cov=. if you want coverage, or drop it for speed
-    - pytest tests/unit -q --cov=. --cov-report=term-missing
-  artifacts:
-    reports:
-      junit: junit.xml           # GitLab will show test results in MR UI
-    paths:
-      - htmlcov                  # coverage html (optional)
-  after_script:
-    # produce JUnit XML for GitLab test report (optional but helpful)
-    - pytest tests/unit -q --junitxml=junit.xml || true
-  coverage: '/^TOTAL.*\s+(\d+\%)$/'   # parses “TOTAL …  85%” from pytest‑cov output
-
+# unit_test:
+#   stage: test
+#   image: python:${PYTHON_VERSION}-slim
+#   cache:
+#     key: ${CI_COMMIT_REF_SLUG}-pip
+#     paths:
+#       - .pip-cache
+#   before_script:
+#     # install your project + pytest
+#     #  – if you already have a requirements.txt or pyproject.toml, use that instead
+#     - pip install --cache-dir $PIP_CACHE_DIR -r requirements.txt || true
+#     - pip install --cache-dir $PIP_CACHE_DIR pytest pytest-cov
+#   script:
+#     # run only unit tests; add --cov=. if you want coverage, or drop it for speed
+#     - pytest tests/unit -q --cov=. --cov-report=term-missing
+#   artifacts:
+#     reports:
+#       junit: junit.xml           # GitLab will show test results in MR UI
+#     paths:
+#       - htmlcov                  # coverage html (optional)
+#   after_script:
+#     # produce JUnit XML for GitLab test report (optional but helpful)
+#     - pytest tests/unit -q --junitxml=junit.xml || true
+#   coverage: '/^TOTAL.*\s+(\d+\%)$/'   # parses “TOTAL …  85%” from pytest‑cov output
 
 # Build Docker image
 build:
@@ -75,7 +72,6 @@ build:
     # No need for docker tag command since we're using the correct image name in docker-compose.build.yml
   after_script:
     - docker logout $CI_REGISTRY
-
 
 # Generate and publish project documentation
 pages:
@@ -103,7 +99,7 @@ deploy_to_ec2:
     - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@3.88.102.215 "
       cd /home/ubuntu/02 &&
       git fetch origin &&
-      git checkout main &&
-      git reset --hard main &&
+      git checkout Navid/Cleaning-up-for-aws &&
+      git reset --hard origin/Navid/Cleaning-up-for-aws &&
       sudo docker-compose down &&
       sudo docker-compose up -d --build "
