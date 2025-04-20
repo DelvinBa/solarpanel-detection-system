@@ -58,7 +58,7 @@ dag = DAG(
 
 # Training parameters (can be overridden by Airflow Variables)
 EPOCHS = Variable.get('yolo_epochs', default_var=3)
-BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
+BATCH_SIZE = Variable.get('yolo_batch_size', default_var=5)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
 MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://3.88.102.215:5001")
