@@ -49,8 +49,8 @@ dag = DAG(
 # MinIO configuration
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID', os.getenv('MINIO_ACCESS_KEY', 'minioadmin'))
-MINIO_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', os.getenv('MINIO_SECRET_KEY', 'minioadmin'))
+MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
 MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'mlflow')
 MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 
@@ -70,9 +70,8 @@ def initialize_minio_client():
     """Initialize and return MinIO client."""
     try:
         endpoint = MINIO_ENDPOINT
-        # If port is specified and not using AWS S3, include it in the endpoint
-        if MINIO_PORT != '80' and MINIO_PORT != '443' and not (MINIO_ENDPOINT.startswith('s3.') or MINIO_ENDPOINT == 's3'):
-            endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        # Always include the port in the endpoint, regardless of hostname
+        endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
         
         logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
         

@@ -7,7 +7,7 @@ def get_minio_client():
     Returns a Minio client instance configured for your local setup.
     Adjust the endpoint, access key, and secret key as needed.
     """
-    endpoint = "minio:9000"  
+    endpoint = "s3:9000"  
     access_key = "minioadmin"
     secret_key = "minioadmin"
     secure = False
@@ -26,7 +26,8 @@ def init_minio_buckets():
     buckets_and_folders = {
         "training-data":   ["training_images/", "labels/"],
         "inference-data":  ["inference_images/", "detection_results/"],
-        "models":          []  # Or [] if you don't need subfolders here
+        "models":          [],  # Or [] if you don't need subfolders here
+        "mlflow":          []   # Add the mlflow bucket needed by other services
     }
 
     for bucket, folders in buckets_and_folders.items():

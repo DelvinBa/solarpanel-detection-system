@@ -72,17 +72,7 @@ Using environment variables for service URLs allows your application to be:
 
 The system supports both local MinIO and AWS S3. When deploying to AWS, you can use either:
 
-### Option 1: AWS S3 (Recommended for Production)
 
-```bash
-# AWS S3 configuration
-MINIO_ENDPOINT=s3.amazonaws.com
-MINIO_SECURE=True
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_DEFAULT_REGION=us-east-1
-MINIO_BUCKET=your-bucket-name
-```
 
 ### Option 2: Self-hosted MinIO
 
@@ -115,17 +105,6 @@ If you're experiencing MinIO/S3 connection issues, check:
 3. IAM permissions for the AWS credentials (need s3:GetObject, s3:PutObject, s3:ListBucket)
 4. Bucket existence and proper permissions
 
-### Test S3 Connectivity
-
-Run a test container with the same environment variables to verify connectivity:
-
-```bash
-docker run --rm -it \
-  -e AWS_ACCESS_KEY_ID=your_key \
-  -e AWS_SECRET_ACCESS_KEY=your_secret \
-  python:3.10-slim \
-  /bin/bash -c "pip install minio && python -c 'from minio import Minio; client=Minio(\"s3.amazonaws.com\", access_key=\"$AWS_ACCESS_KEY_ID\", secret_key=\"$AWS_SECRET_ACCESS_KEY\", secure=True); print(client.list_buckets())'"
-```
 
 ### Test MinIO Connectivity
 

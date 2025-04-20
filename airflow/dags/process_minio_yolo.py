@@ -14,10 +14,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment configuration
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
+MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
-MINIO_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID', os.getenv('MINIO_ACCESS_KEY', 'minioadmin'))
-MINIO_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', os.getenv('MINIO_SECRET_KEY', 'minioadmin'))
+MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
 BUCKET_NAME = os.getenv('MINIO_BUCKET', 'inference-data')
 MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 INFERENCE_IMAGES_FOLDER = "inference_images/"
@@ -45,9 +45,8 @@ def initialize_minio_client():
     """Initialize and return a MinIO client."""
     try:
         endpoint = MINIO_ENDPOINT
-        # If port is specified and not using AWS S3, include it in the endpoint
-        if MINIO_PORT != '80' and MINIO_PORT != '443' and not (MINIO_ENDPOINT.startswith('s3.') or MINIO_ENDPOINT == 's3'):
-            endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        # Always include the port in the endpoint, regardless of hostname
+        endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
         
         logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
         
@@ -61,9 +60,26 @@ def initialize_minio_client():
         logger.info("MinIO client initialized successfully.")
         
         # Ensure bucket exists
-        if not client.bucket_exists(BUCKET_NAME):
-            client.make_bucket(BUCKET_NAME)
-            logger.info(f"Bucket '{BUCKET_NAME}' created.")
+        try:
+            if not client.bucket_exists(BUCKET_NAME):
+                logger.info(f"Bucket '{BUCKET_NAME}' does not exist. Attempting to create it.")
+                client.make_bucket(BUCKET_NAME)
+                logger.info(f"Bucket '{BUCKET_NAME}' created successfully.")
+            else:
+                logger.info(f"Bucket '{BUCKET_NAME}' already exists.")
+        except Exception as bucket_error:
+            logger.error(f"Error with bucket '{BUCKET_NAME}': {str(bucket_error)}")
+            # Try creating required folders in existing buckets
+            try:
+                # Create some test content to ensure we have write access
+                logger.info(f"Attempting to create test folders in '{BUCKET_NAME}'")
+                client.put_object(BUCKET_NAME, f"{INFERENCE_IMAGES_FOLDER}.test", io.BytesIO(b""), 0)
+                client.put_object(BUCKET_NAME, f"{DETECTION_RESULTS_FOLDER}.test", io.BytesIO(b""), 0)
+                logger.info("Successfully created test folders. We have write access.")
+            except Exception as folder_error:
+                logger.error(f"Error creating test folders: {str(folder_error)}")
+                raise
+                
         return client
     except Exception as e:
         logger.error(f"Error initializing MinIO client: {e}")
