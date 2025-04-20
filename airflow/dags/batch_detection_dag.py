@@ -46,7 +46,7 @@ def get_mlflow_tracking_uri():
         response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=0.1)
         if response.status_code == 200:
             # Use the EC2 MLflow server IP from a dedicated Variable
-            ec2_mlflow_ip = Variable.get('mlflow_ec2_ip', default_var="3.88.102.215")
+            ec2_mlflow_ip = Variable.get('mlflow_ec2_ip', default_var="172.31.21.44")
             ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5000")
             ec2_mlflow_uri = f"http://{ec2_mlflow_ip}:{ec2_mlflow_port}"
             logger.info(f"Running on EC2, using MLflow server at {ec2_mlflow_uri}")
