@@ -31,7 +31,7 @@ def save_manifest(manifest_df, minio_client, bucket_name, manifest_filename="hou
     minio_client.put_object(bucket_name, manifest_filename, io.BytesIO(csv_bytes), len(csv_bytes))
     print("Manifest uploaded to MinIO as '{}' in bucket '{}'.".format(manifest_filename, bucket_name))
 
-def run_ingestion_by_city(gemeentecode="GM0153", limit=10):
+def run_collection_by_city(gemeentecode="GM0153", limit=10):
     """
     Processes houses for a given city:
       1. Fetch house IDs (pid and vid) for the city.
@@ -86,7 +86,7 @@ def run_ingestion_by_city(gemeentecode="GM0153", limit=10):
     save_manifest(updated_manifest_df, minio_client, bucket_name, manifest_filename)
     print(f"\nImage manifest updated and stored as '{manifest_filename}' in bucket '{bucket_name}'.")
 
-def run_ingestion_by_vids(vids: List[str]):
+def run_collection_by_vids(vids: List[str]):
     """
     Processes a list of records based on their VIDs:
       1. For each VID (if not already processed), fetch coordinates and the aerial image.
@@ -134,5 +134,5 @@ def run_ingestion_by_vids(vids: List[str]):
 
 if __name__ == "__main__":
     # Example usage:
-    run_ingestion_by_city(gemeentecode="GM0153", limit=40)
-    # run_ingestion_by_vids(["vid1", "vid2", "vid3"])
+    run_collection_by_city(gemeentecode="GM0153", limit=40)
+    # run_collection_by_vids(["vid1", "vid2", "vid3"])
