@@ -75,6 +75,11 @@ Key features:
    - Navigate to the `inference-data` bucket to see scraped data
 
 ### Run Training Pipeline
+0. IMPORTANT --> SET the variable to develop or deploy mode
+   - **DEV_MODE**: This variable controls the mode of operation.
+   - Set `DEV_MODE=True` for development mode, which enables testing and debugging features.
+   - Set `DEV_MODE=False` for deployment mode, which optimizes the system for production use.
+
 1. Access Airflow Webserver:
    - URL: http://localhost:8080
    - Credentials: `admin:admin`
