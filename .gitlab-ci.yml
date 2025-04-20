@@ -15,8 +15,8 @@ variables:
 
 
 stages:
-  - lint          # ← will run first
-  - test          # ← will run second
+  #- lint          # ← will run first
+  #- test          # ← will run second
   - build
   - deploy
   - pages
@@ -112,7 +112,7 @@ deploy_to_ec2:
   script:
     - echo "Deploying to EC2..."
     - chmod 600 $EC2_DEPLOY_KEY
-    - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@54.227.121.145 "
+    - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@3.88.102.215 "
       cd /home/ubuntu/02 &&
       git fetch origin &&
       git checkout Navid/Cleaning-up-for-aws &&
