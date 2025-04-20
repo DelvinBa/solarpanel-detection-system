@@ -37,7 +37,7 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'split_traintest_solar_panel',
+    '1-split_traintest',
     default_args=default_args,
     description='Split solar panel dataset into train/test/validation sets',
     schedule_interval=None,  # Set to None for manual triggering
