@@ -103,7 +103,7 @@ deploy_to_ec2:
     - ssh -i $EC2_DEPLOY_KEY -o StrictHostKeyChecking=no ubuntu@3.88.102.215 "
       cd /home/ubuntu/02 &&
       git fetch origin &&
-      git checkout Navid/Cleaning-up-for-aws &&
-      git reset --hard origin/Navid/Cleaning-up-for-aws &&
+      git checkout main &&
+      git reset --hard origin/main &&
       sudo docker-compose down &&
       sudo docker-compose up -d --build "
