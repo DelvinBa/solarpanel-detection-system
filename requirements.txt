@@ -1,3 +1,4 @@
+apache-airflow==2.6.3
 minio>=7.2.0
 opencv-python>=4.6.0
 # Replace ultralytics with CPU-only version
