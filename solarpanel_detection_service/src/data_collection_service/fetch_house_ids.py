@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 def clean_vid(vid):
     """
@@ -17,27 +18,20 @@ def clean_vid(vid):
     return vid_str
 
 def get_pids_and_vids(gemeentecode):
-    """
-    Fetches data from the API for the given gemeentecode
-    and returns a DataFrame with cleaned vid and pid for all records.
-    Saves result to CSV in data/interim.
-    """
+    # 1) ensure the folder is there
+    output_dir = "data/interim"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 2) fetch + clean
     url = f"https://ds.vboenergie.commondatafactory.nl/list/?match-gemeentecode={gemeentecode}"
-    df = pd.read_json(url)
-    
-    # Keep only 'pid' and 'vid'
-    df = df[['pid', 'vid']].copy()
-
-    # Clean the 'vid' field and enforce string type
+    df = pd.read_json(url)[['pid', 'vid']].copy()
     df['vid'] = df['vid'].apply(clean_vid).astype(str)
-
     df['pid'] = df['pid'].astype(str)
 
-    # Save to CSV in data/interim
-    output_path = f"data/interim/pid_vid_{gemeentecode}.csv"
+    # 3) write to disk
+    output_path = os.path.join(output_dir, f"pid_vid_{gemeentecode}.csv")
     df.to_csv(output_path, index=False)
     print(f"Saved to {output_path}")
-    
     return df
 
 # For testing when run standalone:
