@@ -62,13 +62,7 @@ logger = logging.getLogger(__name__)
 
 # Function to determine if running on EC2
 def is_running_on_ec2():
-    """Check if the current environment is running on EC2"""
-    try:
-        # Try to access the EC2 metadata service with a very short timeout
-        response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=0.1)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        return False
+    return True
 
 # Function to determine MLflow tracking URI based on environment
 def get_mlflow_tracking_uri():
@@ -88,7 +82,7 @@ def get_mlflow_tracking_uri():
         return ec2_mlflow_uri
     
     # For local/development environment, prefer localhost or docker service name
-    local_uri = Variable.get('mlflow_local_uri', default_var="http://mlflow_server:5000")
+    local_uri = Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000")
     logger.info(f"Running in local/dev environment, using MLflow server at {local_uri}")
     return local_uri
 
@@ -121,9 +115,9 @@ MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
 MLFLOW_TRACKING_URI = get_mlflow_tracking_uri()
 # Add fallback MLflow tracking URI options
 MLFLOW_FALLBACK_URIS = [
-    Variable.get('mlflow_local_uri', default_var="http://mlflow_server:5000"),
+    Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000"),
     "http://mlflow:5000",
-    "http://mlflow_server:5001",
+    "http://tracking_server:5001",
     "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
 ]
 PROJECT_DIR = '/opt/airflow/dags/models'
