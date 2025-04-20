@@ -61,7 +61,7 @@ EPOCHS = Variable.get('yolo_epochs', default_var=3)
 BATCH_SIZE = Variable.get('yolo_batch_size', default_var=8)
 IMAGE_SIZE = Variable.get('yolo_img_size', default_var=640)
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
-MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://3.88.102.215:5000")
+MLFLOW_TRACKING_URI = Variable.get('mlflow_tracking_uri', default_var="http://172.31.21.44:5000")
 PROJECT_DIR = '/opt/airflow/dags/models'
 
 # MinIO configuration
