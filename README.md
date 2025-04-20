@@ -1,7 +1,7 @@
-# Automatic Solarpanel Detection 
+# Automatic Solar Panel Detection
 
 ## Table of Contents
-- [Automatic Solarpanel Detection](#automatic-solarpanel-detection)
+- [Automatic Solar Panel Detection](#automatic-solar-panel-detection)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
@@ -9,28 +9,39 @@
     - [Cloud Deployment](#cloud-deployment)
     - [Local Setup](#local-setup)
   - [Usage Guide](#usage-guide)
+    - [Run Data Collection](#run-data-collection)
+    - [Run Training Pipeline](#run-training-pipeline)
+    - [Run Inference Process](#run-inference-process)
+  - [Known Issues](#known-issues)
+  - [Accessing Services](#accessing-services)
     - [Portainer](#portainer)
-    - [MLflow](#mlflow)
-    - [Airflow](#airflow)
     - [FastAPI Gateway](#fastapi-gateway)
-    - [MinIO](#minio)
+    - [MinIO Storage](#minio-storage)
+    - [Airflow](#airflow)
 
 ## Overview
-Brief description of your project, its purpose, and main capabilities.
+This project automatically detects rooftop solar panels on Dutch homes using aerial imagery.
 
+Key features:
+- **Automated Data Collection**: Retrieves fresh, geo-referenced house-level images across the Netherlands
+- **YOLO-based Inference Service**: Runs object detection per House ID and returns presence/absence plus confidence scores
+- **Continuous MLOps Pipeline**: Retrains and redeploys the model whenever new labeled data arrive, keeping accuracy up-to-date
 
 ## Prerequisites
 - Docker
 - Docker Compose
-- Access credentials (for cloud deployment)
-- IDE e.g. VSCode
+- IDE (e.g., VSCode)
 
 ## Setup Instructions
 
 ### Cloud Deployment
-1. Access the cloud environment at `[CLOUD_URL]`
-2. Authentication details and access methods
-3. Configuration steps if any
+1. Access the cloud environment at [Portainer Dashboard](https://3.88.102.215:9443/#!/auth)
+2. Login with credentials: 
+   - Username: `admin`
+   - Password: `1qaz!QAZ123456`
+3. View all services from the Portainer dashboard by clicking on the Containers tab in the left sidebar
+
+> **Note**: Data collection has known issues in the cloud environment. See [Known Issues](#known-issues) section.
 
 ### Local Setup
 1. Clone the repository:
@@ -38,61 +49,67 @@ Brief description of your project, its purpose, and main capabilities.
    git clone https://gitlab.com/saxionnl/master-ict-se/dataops/2024-2025/group-02/02.git
    cd 02
    ```
-   We pushed .env file to the repository, for ease of setting up the project. Normally this file should not be pushed to the repository.
-
+   > **Note**: The .env file is included in the repository for ease of setup. In a production environment, this file should not be committed to version control.
 
 2. Start the services using Docker Compose:
    ```bash
-   docker-compose build
-   docker-compose up -d
-   ```
-
-3. Verify that all containers are running:
-   ```bash
-   docker-compose ps
+   docker-compose up --build -d
    ```
 
 ## Usage Guide
 
+### Run Data Collection
+1. Access FastAPI Gateway:
+   - URL: http://localhost:8000/docs
+   - Use the Swagger UI to run the data collection endpoint
+   - For collection via city code:
+     - Find city codes [here](https://public.opendatasoft.com/explore/dataset/georef-netherlands-gemeente/table/?disjunctive.prov_code&disjunctive.prov_name&disjunctive.gem_code&disjunctive.gem_name&sort=year)
+     - Input the Gemeentecode with prefix
+   - For collection via VIDs:
+     - Transform VID format from `153010000328605.0` to `0153010000328605` (add leading 0, remove decimal)
+
+2. View collected data in MinIO:
+   - URL: http://localhost:9001
+   - Credentials: `minioadmin:minioadmin`
+   - Navigate to the `inference-data` bucket to see scraped data
+
+### Run Training Pipeline
+*This section needs completion with detailed steps.*
+
+### Run Inference Process
+1. Access Airflow Webserver:
+   - URL: http://localhost:8080
+   - Credentials: `admin:admin`
+   - Trigger the `batch_detection` DAG manually
+
+2. View results in MinIO:
+   - URL: http://localhost:9001
+   - Credentials: `minioadmin:minioadmin`
+   - Navigate to the `inference-data` bucket
+   - Result images are in the `detection-results` folder
+   - Confidence results, house IDs, and image URLs are stored in `house_id_results.csv`
+
+## Known Issues
+- **Cloud Data Collection**: The FastAPI service in the cloud environment cannot send requests to the `solarpanel_detection_service` container. It is recommended to run data collection and inference processes locally.
+- **Portainer First-Time Access**: On first local access, Portainer may fail to start. Restart the container through your Docker dashboard if needed.
+
+## Accessing Services
+
 ### Portainer
-- Access: http://localhost:9000 (or cloud URL)
-- Login with provided credentials
-- Main functionalities:
-  - Container management
-  - Volume management
-  - Network settings
-
-### MLflow
-- Access: http://localhost:5000 (or cloud URL)
-- Purpose: Tracking experiments and managing models
-- Basic operations:
-  - View experiments
-  - Compare runs
-  - Register models
-
-### Airflow
-- Access: http://localhost:8080 (or cloud URL)
-- Purpose: Managing and scheduling data workflows
-- Available DAGs:
-  - (List of your main DAGs and their purposes)
-- How to trigger DAGs manually
+Monitor container status through Portainer:
+- **Cloud**: [https://3.88.102.215:9443](https://3.88.102.215:9443/#!/auth) (`admin:1qaz!QAZ123456`)
+- **Local**: http://localhost:9443
+  - First-time local setup requires creating a new user and password
 
 ### FastAPI Gateway
-- Access: http://localhost:8000 (or cloud URL)
-- API documentation: http://localhost:8000/docs
-- Main endpoints:
-  - (List of key endpoints)
+- URL: http://localhost:8000/docs
 
-### MinIO
-- Access: http://localhost:9001 (or cloud URL)
-- Purpose: Object storage (similar to AWS S3)
-- Basic operations:
-  - Creating buckets
-  - Uploading files
-  - Downloading files
-  - Setting access policies
-- Integration with other services:
-  - How MLflow uses MinIO for artifact storage
-  - How Airflow accesses data from MinIO
+### MinIO Storage
+- URL: http://localhost:9001
+- Credentials: `minioadmin:minioadmin`
+
+### Airflow
+- URL: http://localhost:8080
+- Credentials: `admin:admin`
 
 
