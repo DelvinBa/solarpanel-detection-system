@@ -1,29 +1,24 @@
 C4Deployment
-title Deployment Diagram for Solar Panel Detection System (Azure)
+title Deployment Diagram for Solar Panel Detection System (AWS)
 
-%% The top-level node represents our Azure environment
-Deployment_Node(azure, "Microsoft Azure", "Cloud Environment") {
-    
-    %% Inside Azure, we have a Kubernetes cluster running all containers
-    Deployment_Node(aks, "Azure Kubernetes Service (AKS)", "Managed Kubernetes") {
-        
-        Container(airflow, "Airflow", "Docker Container (Python)", "Orchestrates and schedules pipeline tasks.")
-        Container(pipeline, "Solardetection Service", "Docker Container (Python)", "Webscraping, model training, and batch inference.")
-        Container(fastapi, "Solardetection API", "Docker Container (Python/FastAPI)", "Serves real-time detection requests.")
-        Container(mlflow, "MLflow", "Docker Container (Python)", "Tracks ML experiments, metrics, and artifacts.")
-        ContainerDb(postgres, "PostgreSQL", "Docker Container", "Stores MLflow data and detection results.")
-        ContainerDb(minio, "MinIO", "Docker Container", "S3-compatible object storage for images and model artifacts.")
+%% The top-level node represents our aws environment
+Deployment_Node(aws, "Amazon Web Services (AWS)", "Cloud Environment") {
+   
+        Container(airflow, "Airflow", "Docker Container", "")
+        Container(pipeline, "Solardetection Service", "Docker Container ", "")
+        Container(fastapi, "FastAPI Gateway", "Docker Container ", "")
+        Container(mlflow, "MLflow", "Docker Container ", "")
+        ContainerDb(postgres, "PostgreSQL", "Docker Container", "")
+        ContainerDb(minio, "MinIO", "Docker Container", "")
     }
-}
 
-%% Relationships (containers in the same cluster communicate via internal networking)
-Rel(airflow, pipeline, "Schedules scraping, training, batch inference tasks")
-Rel(pipeline, minio, "Stores/Retrieves images & models", "S3/HTTP")
-Rel(pipeline, mlflow, "Logs ML metrics and artifacts", "HTTP")
-Rel(pipeline, postgres, "Stores detection outputs", "SQL")
-Rel(fastapi, pipeline, "Makes API calls for inference/training logic", "HTTP")
-Rel(mlflow, minio, "Stores ML artifacts", "S3/HTTP")
-Rel(mlflow, postgres, "Stores experiment metadata", "SQL")
+Rel(airflow, pipeline, "")
+Rel(pipeline, minio, "", "")
+Rel(pipeline, mlflow, "", "")
+Rel(pipeline, postgres, "", "")
+Rel(fastapi, pipeline, "", "")
+Rel(mlflow, minio, "", "")
+Rel(mlflow, postgres, "", "")
 
 %% Example styling offsets with colors
 %% "The arrows from the same container to another should have the same color."
@@ -42,3 +37,5 @@ UpdateRelStyle(fastapi, pipeline, $lineColor="#15803d", $textColor="#15803d", $o
 %% MLflow -> MinIO, PostgreSQL both share the same style
 UpdateRelStyle(mlflow, minio, $lineColor="#f97316", $textColor="#f97316", $offsetX="110", $offsetY="60")
 UpdateRelStyle(mlflow, postgres, $lineColor="#f97316", $textColor="#f97316", $offsetX="-80", $offsetY="50")
+UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+
