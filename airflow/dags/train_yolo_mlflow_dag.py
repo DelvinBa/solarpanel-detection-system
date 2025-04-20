@@ -67,6 +67,7 @@ EPOCHS = int(Variable.get('yolo_epochs', default_var=3))
 BATCH_SIZE = int(Variable.get('yolo_batch_size', default_var=5))
 IMAGE_SIZE = int(Variable.get('yolo_img_size', default_var=640))
 MODEL_NAME = Variable.get('yolo_model_name', default_var='yolov8n.pt')
+DEV_MODE = os.getenv('DEV_MODE', True)
 
 # Model paths and settings
 DEFAULT_YOLO_MODEL = Variable.get('yolo_model_name', default_var='yolov8n.pt')
@@ -82,7 +83,7 @@ TEMP_DATA_DIR = Variable.get('yolo_temp_data_dir', default_var='/tmp/yolo_traini
 
 # Function to determine if running on EC2
 def is_running_on_ec2():
-    return True
+    return DEV_MODE
 
 # Function to determine MLflow tracking URI based on environment
 def get_mlflow_tracking_uri():
