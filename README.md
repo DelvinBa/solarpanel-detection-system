@@ -13,6 +13,7 @@
     - [Run Training Pipeline](#run-training-pipeline)
     - [Run Inference Process](#run-inference-process)
   - [Known Issues](#known-issues)
+  - [AWS Static IPs](#aws-static-ips)
   - [Accessing Services](#accessing-services)
     - [Portainer](#portainer)
     - [FastAPI Gateway](#fastapi-gateway)
@@ -74,7 +75,15 @@ Key features:
    - Navigate to the `inference-data` bucket to see scraped data
 
 ### Run Training Pipeline
-*This section needs completion with detailed steps.*
+1. Access Airflow Webserver:
+   - URL: http://localhost:8080
+   - Credentials: `admin:admin`
+
+2. Execute `1-split_traintest` DAG:
+   - This DAG splits the dataset into training and testing sets, ensuring that the model is trained on a diverse set of data.
+
+3. Execute `2-train_yolo` DAG:
+   - This DAG trains the YOLO model using the training dataset, updating the model parameters to improve accuracy.
 
 ### Run Inference Process
 1. Access Airflow Webserver:
@@ -82,7 +91,7 @@ Key features:
    - Credentials: `admin:admin`
    - Trigger the `batch_detection` DAG manually
 
-2. View results in MinIO:
+4. View results in MinIO:
    - URL: http://localhost:9001
    - Credentials: `minioadmin:minioadmin`
    - Navigate to the `inference-data` bucket
@@ -92,6 +101,11 @@ Key features:
 ## Known Issues
 - **Cloud Data Collection**: The FastAPI service in the cloud environment cannot send requests to the `solarpanel_detection_service` container. It is recommended to run data collection and inference processes locally.
 - **Portainer First-Time Access**: On first local access, Portainer may fail to start. Restart the container through your Docker dashboard if needed.
+
+## AWS Static IPs
+The project is deployed on AWS with the following static IP configuration:
+- **Public IP**: 3.88.102.215
+- **Private IP**: 172.31.21.44
 
 ## Accessing Services
 
