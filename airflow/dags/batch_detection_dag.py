@@ -9,6 +9,9 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from minio import Minio
 from ultralytics import YOLO
+import requests
+from airflow.models import Variable
+import shutil
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +32,42 @@ MANIFEST_FILENAME = "house_id_results.csv"
 # Path to YOLO model (as fallback)
 DAGS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 YOLO_MODEL_PATH = os.path.join(DAGS_FOLDER, "models", "best5.pt")
+
+# MLflow configuration - need to get from train_yolo_mlflow_dag.py
+def get_mlflow_tracking_uri():
+    """Determine the appropriate MLflow tracking URI based on environment"""
+    # First check if explicitly set in Airflow variables
+    uri_from_variable = Variable.get('mlflow_tracking_uri', default_var=None)
+    if uri_from_variable and uri_from_variable != "http://3.88.102.215:5001":
+        return uri_from_variable
+        
+    # Check if we're on EC2 (simple check)
+    try:
+        response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=0.1)
+        if response.status_code == 200:
+            # Use the EC2 MLflow server IP from a dedicated Variable
+            ec2_mlflow_ip = Variable.get('mlflow_ec2_ip', default_var="3.88.102.215")
+            ec2_mlflow_port = Variable.get('mlflow_ec2_port', default_var="5000")
+            ec2_mlflow_uri = f"http://{ec2_mlflow_ip}:{ec2_mlflow_port}"
+            logger.info(f"Running on EC2, using MLflow server at {ec2_mlflow_uri}")
+            return ec2_mlflow_uri
+    except:
+        pass
+    
+    # For local/development environment, prefer localhost or docker service name
+    local_uri = Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000")
+    logger.info(f"Running in local/dev environment, using MLflow server at {local_uri}")
+    return local_uri
+
+# Add fallback MLflow tracking URI options
+MLFLOW_TRACKING_URI = get_mlflow_tracking_uri()
+MLFLOW_FALLBACK_URIS = [
+    Variable.get('mlflow_local_uri', default_var="http://tracking_server:5000"),
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "http://tracking_server:5001",
+    "file:///opt/airflow/mlruns"  # Local file-based tracking as last resort
+]
 
 default_args = {
     'owner': 'airflow',
@@ -89,35 +128,141 @@ def initialize_minio_client():
 
 def get_latest_model(client):
     """
-    Find the latest YOLO model in the MinIO models bucket.
+    Find the latest YOLO model in the following order:
+    1. Try to get the latest Production model from MLflow registry
+    2. Fall back to MinIO models bucket if MLflow fails
+    3. Use the fallback hardcoded model path as last resort
+    
     Returns the model object name and a local path to the downloaded model.
     """
     try:
+        # First try MLflow - import here to avoid issues if not installed
+        try:
+            import mlflow
+            from mlflow.tracking import MlflowClient
+            
+            mlflow_reachable = False
+            
+            # Try different MLflow tracking URIs
+            for tracking_uri in [MLFLOW_TRACKING_URI] + MLFLOW_FALLBACK_URIS:
+                try:
+                    logger.info(f"Trying MLflow tracking URI: {tracking_uri}")
+                    mlflow.set_tracking_uri(tracking_uri)
+                    
+                    # First try to directly create a client as the most reliable test
+                    try:
+                        mlflow_client = MlflowClient(tracking_uri=tracking_uri)
+                        # Just make a simple API call to test connection
+                        experiments = mlflow_client.search_experiments()
+                        logger.info(f"Connected to MLflow server at {tracking_uri} via client API")
+                        mlflow_reachable = True
+                        break
+                    except Exception as client_error:
+                        logger.debug(f"Client API connection failed: {client_error}")
+                        
+                        # Fall back to HTTP API test if client test fails
+                        # The /api/2.0/mlflow/experiments/list endpoint might return 404 on some MLflow versions
+                        # Try different API endpoints
+                        api_endpoints = [
+                            "/api/2.0/mlflow/experiments/list",
+                            "/api/2.0/preview/mlflow/experiments/list",
+                            "/ajax-api/2.0/mlflow/experiments/list",
+                            "/ajaxapi/2.0/mlflow/experiments/list"
+                        ]
+                        
+                        for endpoint in api_endpoints:
+                            api_url = f"{tracking_uri}{endpoint}"
+                            try:
+                                response = requests.get(api_url, timeout=5)
+                                # Accept 200 or 404 (might mean the endpoint exists but returns a different format)
+                                if response.status_code == 200 or response.status_code == 404:
+                                    logger.info(f"MLflow server responding at {api_url} with status {response.status_code}")
+                                    mlflow_reachable = True
+                                    break
+                            except Exception as e:
+                                logger.debug(f"API endpoint {endpoint} failed: {e}")
+                                
+                        if mlflow_reachable:
+                            break
+                except requests.exceptions.Timeout:
+                    logger.warning(f"Connection to MLflow at {tracking_uri} timed out")
+                except requests.exceptions.ConnectionError:
+                    logger.warning(f"Could not connect to MLflow at {tracking_uri}")
+                except Exception as e:
+                    logger.warning(f"Failed to connect to MLflow at {tracking_uri}: {e}")
+            
+            if mlflow_reachable:
+                # Try to get the latest Production model
+                mlflow_client = MlflowClient()
+                model_name = "yolo-solar-panel-detector"  # Match name in training DAG
+                
+                # Find models in Production stage first
+                try:
+                    production_versions = mlflow_client.get_latest_versions(model_name, stages=["Production"])
+                    if production_versions:
+                        model_version = production_versions[0].version
+                        logger.info(f"Found Production model {model_name} version {model_version}")
+                        
+                        # Download the model
+                        _, temp_file_path = tempfile.mkstemp(suffix='.pt')
+                        model_uri = f"models:/{model_name}/{model_version}"
+                        
+                        # This downloads the model to the specified path
+                        model_path = mlflow.artifacts.download_artifacts(
+                            artifact_uri=model_uri,
+                            dst_path=os.path.dirname(temp_file_path)
+                        )
+                        
+                        # Navigate to the actual model file (need to find the .pt file)
+                        if os.path.isdir(model_path):
+                            # Look for .pt files in the directory
+                            model_files = []
+                            for root, _, files in os.walk(model_path):
+                                for file in files:
+                                    if file.endswith('.pt'):
+                                        model_files.append(os.path.join(root, file))
+                            
+                            if model_files:
+                                logger.info(f"Found MLflow model file: {model_files[0]}")
+                                return f"mlflow:{model_name}/version/{model_version}", model_files[0]
+                        
+                        logger.warning("Downloaded MLflow model but couldn't find .pt file")
+                except Exception as mlflow_error:
+                    logger.warning(f"Error getting model from MLflow: {mlflow_error}")
+        except ImportError:
+            logger.warning("MLflow not available, skipping MLflow model check")
+        except Exception as e:
+            logger.warning(f"General error with MLflow: {e}")
+        
+        # Fall back to MinIO if MLflow didn't work
+        logger.info("Falling back to MinIO for model retrieval")
+        
+        # Make sure we're using the minio client, not the mlflow_client
+        minio_client = client  # Use the passed-in MinIO client
+        
         # Check if models bucket exists
-        if not client.bucket_exists(MODELS_BUCKET):
+        if not minio_client.bucket_exists(MODELS_BUCKET):
             logger.warning(f"Models bucket '{MODELS_BUCKET}' does not exist. Using fallback model.")
             return None, YOLO_MODEL_PATH
         
         # List all objects in the models bucket
         logger.info(f"Listing objects in '{MODELS_BUCKET}' bucket to find the latest model...")
-        objects = list(client.list_objects(MODELS_BUCKET, recursive=True))
+        objects = list(minio_client.list_objects(MODELS_BUCKET, recursive=True))
         
         # Filter for model files with 'best' in the name
         model_objects = [obj for obj in objects if obj.object_name.lower().endswith('.pt') and 'best' in obj.object_name.lower()]
         
         if not model_objects:
-            logger.warning(f"No model files found in '{MODELS_BUCKET}' bucket. Using fallback model.")
+            logger.warning(f"No best model found in {MODELS_BUCKET}. Using fallback model.")
             return None, YOLO_MODEL_PATH
         
-        # Sort by last modified time to get the latest model
-        model_objects.sort(key=lambda obj: obj.last_modified, reverse=True)
-        latest_model = model_objects[0]
-        
-        logger.info(f"Found latest model: {latest_model.object_name} (modified: {latest_model.last_modified})")
+        # Sort by last_modified to get the latest model
+        latest_model = sorted(model_objects, key=lambda obj: obj.last_modified, reverse=True)[0]
+        logger.info(f"Found latest model in MinIO: {latest_model.object_name} (modified: {latest_model.last_modified})")
         
         # Download the model to a temporary file
         _, temp_file_path = tempfile.mkstemp(suffix='.pt')
-        client.fget_object(MODELS_BUCKET, latest_model.object_name, temp_file_path)
+        minio_client.fget_object(MODELS_BUCKET, latest_model.object_name, temp_file_path)
         logger.info(f"Downloaded latest model to {temp_file_path}")
         
         return latest_model.object_name, temp_file_path
@@ -143,9 +288,9 @@ def update_manifest_with_detection(client, file_identifier, max_confidence):
         manifest_df.loc[matching, 'max_confidence'] = max_confidence
         logger.info(f"Updated manifest entry for {file_identifier} with max_confidence: {max_confidence}")
     else:
-        # If the file is not present, optionally append a new entry.
-        new_row = {"pid": None, "vid": None, "minio_object": file_identifier, "max_confidence": max_confidence}
-        manifest_df = manifest_df.append(new_row, ignore_index=True)
+        # If the file is not present, create a new entry and concatenate with the existing DataFrame
+        new_row = pd.DataFrame({"pid": [None], "vid": [None], "minio_object": [file_identifier], "max_confidence": [max_confidence]})
+        manifest_df = pd.concat([manifest_df, new_row], ignore_index=True)
         logger.info(f"Appended new manifest entry for {file_identifier} with max_confidence: {max_confidence}")
     
     csv_data = manifest_df.to_csv(index=False)
@@ -213,9 +358,21 @@ def process_images():
     """
     temp_model_path = None
     try:
+        # Ensure MLflow is installed
+        try:
+            import mlflow
+        except ImportError:
+            logger.info("Installing MLflow package...")
+            import subprocess
+            import sys
+            subprocess.run([sys.executable, "-m", "pip", "install", "mlflow"], check=True)
+            # Import again after installation
+            import mlflow
+            logger.info("MLflow installed successfully.")
+            
         client = initialize_minio_client()
         
-        # Get the latest model from MinIO
+        # Get the latest model from MLflow or MinIO
         model_name, model_path = get_latest_model(client)
         temp_model_path = model_path if model_name else None
         
@@ -245,6 +402,17 @@ def process_images():
                 logger.info(f"Removed temporary model file {temp_model_path}")
             except Exception as e:
                 logger.error(f"Error removing temporary model file: {e}")
+                
+        # Clean up any MLflow download directories
+        if 'model_name' in locals() and model_name and model_name.startswith('mlflow:'):
+            try:
+                # The model_path parent directory likely contains MLflow artifacts
+                mlflow_dir = os.path.dirname(model_path)
+                if os.path.exists(mlflow_dir) and os.path.isdir(mlflow_dir):
+                    shutil.rmtree(mlflow_dir)
+                    logger.info(f"Removed MLflow artifacts directory {mlflow_dir}")
+            except Exception as e:
+                logger.error(f"Error removing MLflow artifacts: {e}")
 
 # Create the Airflow DAG
 dag = DAG(
