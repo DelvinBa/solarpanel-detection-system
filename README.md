@@ -88,6 +88,7 @@ Key features:
      - Upload corresponding YOLO format labels (.txt) to the `labels` folder
    - The label files must follow YOLO format: one line per object with `class x_center y_center width height`
    - Each label file should have the same name as its corresponding image file (different extension)
+   - A seeded sample dataset (images and labels) is available in the `mlflow` bucket under `/data/raw` directory
 
 3. Execute `1-split_traintest` DAG at http://localhost:8080:
    - This DAG splits the dataset into training and testing sets
