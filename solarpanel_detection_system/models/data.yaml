@@ -1,9 +1,0 @@
-names:
-  0: solar_panel
-  1: solar_array
-  2: roof_array
-nc: 3
-path: C:\Users\ghara\Learning Hub\DataOps-Materials\sources\AutomaticSolarPanelDetection\02\solarpanel_detection_system\data\processed\SateliteData
-test: test/images
-train: train/images
-val: val/images

@@ -4,8 +4,8 @@ from typing import List
 from .fetch_house_ids import get_pids_and_vids
 from .fetch_location import get_coordinates
 from .fetch_images import get_aerial_image
-from solarpanel_detection_system.src.minio.minio_utils import upload_image_to_minio, get_minio_client
-from solarpanel_detection_system.src.minio.minio_init import init_minio_buckets
+from solarpanel_detection_service.src.minio.minio_utils import upload_image_to_minio, get_minio_client
+from solarpanel_detection_service.src.minio.minio_init import init_minio_buckets
 
 def load_manifest(minio_client, bucket_name, manifest_filename="house_id_results.csv"):
     """

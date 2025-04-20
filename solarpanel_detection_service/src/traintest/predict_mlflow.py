@@ -21,7 +21,7 @@ def setup_mlflow():
         mlflow_port = os.getenv("MLFLOW_PORT", "5001")
         
         # Set up the tracking URI to use the MLflow tracking server
-        tracking_uri = f"http://localhost:{mlflow_port}"
+        tracking_uri = os.getenv("MLFLOW_TRACKING_URI", f"http://localhost:{mlflow_port}")
         logger.info(f"Setting MLflow tracking URI: {tracking_uri}")
         mlflow.set_tracking_uri(tracking_uri)
         

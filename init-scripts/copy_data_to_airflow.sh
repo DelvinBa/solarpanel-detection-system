@@ -20,14 +20,14 @@ echo "Creating destination directory at $DATA_DIR"
 docker exec $CONTAINER_ID mkdir -p $DATA_DIR/train/images $DATA_DIR/train/labels $DATA_DIR/val/images $DATA_DIR/test/images
 
 # Check if the source data directory exists
-if [ ! -d "./solarpanel_detection_system/data/processed/SateliteData" ]; then
-    echo "Error: Source data directory not found. Expected at: ./solarpanel_detection_system/data/processed/SateliteData"
+if [ ! -d "./solarpanel_detection_service/data/processed/SateliteData" ]; then
+    echo "Error: Source data directory not found. Expected at: ./solarpanel_detection_service/data/processed/SateliteData"
     exit 1
 fi
 
 # Copy the data from the source to the container
 echo "Copying data to Airflow container..."
-docker cp ./solarpanel_detection_system/data/processed/SateliteData/. $CONTAINER_ID:$DATA_DIR/
+docker cp ./solarpanel_detection_service/data/processed/SateliteData/. $CONTAINER_ID:$DATA_DIR/
 
 # Set the Airflow variable for the data directory
 echo "Setting Airflow variable yolo_data_dir to $DATA_DIR"

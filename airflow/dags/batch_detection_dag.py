@@ -3,6 +3,7 @@ import cv2
 import logging
 import pandas as pd
 import io
+import tempfile
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -14,16 +15,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment configuration
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 's3')
+MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
 MINIO_PORT = os.getenv('MINIO_PORT', '9000')
 MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
 MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
 BUCKET_NAME = os.getenv('MINIO_BUCKET', 'inference-data')
+MODELS_BUCKET = os.getenv('MODELS_BUCKET', 'models')
+MINIO_SECURE = os.getenv('MINIO_SECURE', 'False').lower() == 'true'
 INFERENCE_IMAGES_FOLDER = "inference_images/"
 DETECTION_RESULTS_FOLDER = "detection_results/"
 MANIFEST_FILENAME = "house_id_results.csv"
 
-# Path to YOLO model
+# Path to YOLO model (as fallback)
 DAGS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 YOLO_MODEL_PATH = os.path.join(DAGS_FOLDER, "models", "best5.pt")
 
@@ -43,21 +46,85 @@ default_args = {
 def initialize_minio_client():
     """Initialize and return a MinIO client."""
     try:
+        endpoint = MINIO_ENDPOINT
+        # Always include the port in the endpoint, regardless of hostname
+        endpoint = f"{MINIO_ENDPOINT}:{MINIO_PORT}"
+        
+        logger.info(f"Attempting to connect to MinIO/S3 at {endpoint} (secure={MINIO_SECURE})")
+        
+        # Initialize MinIO client
         client = Minio(
-            endpoint=f"{MINIO_ENDPOINT}:{MINIO_PORT}",
+            endpoint=endpoint,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
-            secure=False
+            secure=MINIO_SECURE
         )
         logger.info("MinIO client initialized successfully.")
+        
         # Ensure bucket exists
-        if not client.bucket_exists(BUCKET_NAME):
-            client.make_bucket(BUCKET_NAME)
-            logger.info(f"Bucket '{BUCKET_NAME}' created.")
+        try:
+            if not client.bucket_exists(BUCKET_NAME):
+                logger.info(f"Bucket '{BUCKET_NAME}' does not exist. Attempting to create it.")
+                client.make_bucket(BUCKET_NAME)
+                logger.info(f"Bucket '{BUCKET_NAME}' created successfully.")
+            else:
+                logger.info(f"Bucket '{BUCKET_NAME}' already exists.")
+        except Exception as bucket_error:
+            logger.error(f"Error with bucket '{BUCKET_NAME}': {str(bucket_error)}")
+            # Try creating required folders in existing buckets
+            try:
+                # Create some test content to ensure we have write access
+                logger.info(f"Attempting to create test folders in '{BUCKET_NAME}'")
+                client.put_object(BUCKET_NAME, f"{INFERENCE_IMAGES_FOLDER}.test", io.BytesIO(b""), 0)
+                client.put_object(BUCKET_NAME, f"{DETECTION_RESULTS_FOLDER}.test", io.BytesIO(b""), 0)
+                logger.info("Successfully created test folders. We have write access.")
+            except Exception as folder_error:
+                logger.error(f"Error creating test folders: {str(folder_error)}")
+                raise
+                
         return client
     except Exception as e:
         logger.error(f"Error initializing MinIO client: {e}")
         raise
+
+def get_latest_model(client):
+    """
+    Find the latest YOLO model in the MinIO models bucket.
+    Returns the model object name and a local path to the downloaded model.
+    """
+    try:
+        # Check if models bucket exists
+        if not client.bucket_exists(MODELS_BUCKET):
+            logger.warning(f"Models bucket '{MODELS_BUCKET}' does not exist. Using fallback model.")
+            return None, YOLO_MODEL_PATH
+        
+        # List all objects in the models bucket
+        logger.info(f"Listing objects in '{MODELS_BUCKET}' bucket to find the latest model...")
+        objects = list(client.list_objects(MODELS_BUCKET, recursive=True))
+        
+        # Filter for model files with 'best' in the name
+        model_objects = [obj for obj in objects if obj.object_name.lower().endswith('.pt') and 'best' in obj.object_name.lower()]
+        
+        if not model_objects:
+            logger.warning(f"No model files found in '{MODELS_BUCKET}' bucket. Using fallback model.")
+            return None, YOLO_MODEL_PATH
+        
+        # Sort by last modified time to get the latest model
+        model_objects.sort(key=lambda obj: obj.last_modified, reverse=True)
+        latest_model = model_objects[0]
+        
+        logger.info(f"Found latest model: {latest_model.object_name} (modified: {latest_model.last_modified})")
+        
+        # Download the model to a temporary file
+        _, temp_file_path = tempfile.mkstemp(suffix='.pt')
+        client.fget_object(MODELS_BUCKET, latest_model.object_name, temp_file_path)
+        logger.info(f"Downloaded latest model to {temp_file_path}")
+        
+        return latest_model.object_name, temp_file_path
+    except Exception as e:
+        logger.error(f"Error getting latest model: {e}")
+        logger.warning("Using fallback model path.")
+        return None, YOLO_MODEL_PATH
 
 def update_manifest_with_detection(client, file_identifier, max_confidence):
     """
@@ -144,12 +211,20 @@ def process_images():
     List images in the inference_images folder, process each image with YOLO,
     and update the detection results in the manifest CSV.
     """
+    temp_model_path = None
     try:
         client = initialize_minio_client()
-        if not os.path.exists(YOLO_MODEL_PATH):
-            raise FileNotFoundError(f"YOLO model not found at {YOLO_MODEL_PATH}")
-        model = YOLO(YOLO_MODEL_PATH)
-        logger.info("YOLO model loaded successfully.")
+        
+        # Get the latest model from MinIO
+        model_name, model_path = get_latest_model(client)
+        temp_model_path = model_path if model_name else None
+        
+        logger.info(f"Loading YOLO model from {model_path}")
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"YOLO model not found at {model_path}")
+        
+        model = YOLO(model_path)
+        logger.info(f"YOLO model '{model_name or 'fallback'}' loaded successfully.")
         
         objects = list(client.list_objects(BUCKET_NAME, prefix=INFERENCE_IMAGES_FOLDER))
         logger.info(f"Found {len(objects)} objects in '{INFERENCE_IMAGES_FOLDER}'")
@@ -162,10 +237,18 @@ def process_images():
     except Exception as e:
         logger.error(f"Error in process_images: {e}")
         raise
+    finally:
+        # Clean up temporary model file
+        if temp_model_path and os.path.exists(temp_model_path) and temp_model_path != YOLO_MODEL_PATH:
+            try:
+                os.remove(temp_model_path)
+                logger.info(f"Removed temporary model file {temp_model_path}")
+            except Exception as e:
+                logger.error(f"Error removing temporary model file: {e}")
 
 # Create the Airflow DAG
 dag = DAG(
-    'yolo_minio_airflow',
+    'batch_detection',
     default_args=default_args,
     description='Process images with YOLO and update detection results in manifest',
     schedule_interval=timedelta(minutes=60),

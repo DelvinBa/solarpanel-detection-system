@@ -82,7 +82,7 @@ def setup_mlflow():
     try:
         # Set up the tracking URI to use the MLflow server with the correct port
         mlflow_port = os.getenv("MLFLOW_PORT", "5001")
-        tracking_uri = f"http://localhost:{mlflow_port}"
+        tracking_uri = os.getenv("MLFLOW_TRACKING_URI", f"http://localhost:{mlflow_port}")
         logger.info(f"Setting MLflow tracking URI: {tracking_uri}")
         mlflow.set_tracking_uri(tracking_uri)
         
@@ -327,7 +327,7 @@ def main():
     )
     
     print(f"Training completed. MLflow run ID: {run_id}")
-    print(f"View run details at: http://localhost:{os.getenv('MLFLOW_PORT', '5001')}/experiments")
+    print(f"View run details at: {os.getenv('MLFLOW_UI_URL', f'http://localhost:{os.getenv("MLFLOW_PORT", "5001")}/experiments')}")
 
 if __name__ == "__main__":
     main() 
