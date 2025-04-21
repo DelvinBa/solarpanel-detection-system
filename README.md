@@ -1,5 +1,7 @@
 # Automatic Solar Panel Detection
 
+Read more about the project, the functional and the technical architecture in the [technical and functional design](https://github.com/DelvinBa/solarpanel-detection-system/blob/main/technical_functional_design.pdf).
+
 ## Table of Contents
 - [Automatic Solar Panel Detection](#automatic-solar-panel-detection)
   - [Table of Contents](#table-of-contents)
